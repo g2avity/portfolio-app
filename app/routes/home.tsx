@@ -1,13 +1,12 @@
-import type { Route } from "./+types/home";
-import { Welcome } from "../welcome/welcome";
+import { Hero } from "../components/hero";
 
-export function meta({}: Route.MetaArgs) {
+export function meta() {
   return [
-    { title: "New React Router App" },
-    { name: "description", content: "Welcome to React Router!" },
+    { title: "Portfolios by G2avity" },
+    { name: "description", content: "Professional portfolio platform built with modern web technologies" },
   ];
 }
 
 export default function Home() {
-  return <Welcome />;
+  return <Hero />;
 }
