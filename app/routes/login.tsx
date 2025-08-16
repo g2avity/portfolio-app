@@ -1,5 +1,4 @@
-import { Form, Link } from "@react-router/react";
-import { authenticator } from "../lib/auth.server";
+import { Form, Link } from "react-router";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 

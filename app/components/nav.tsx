@@ -1,5 +1,6 @@
 import { Button } from "./ui/button";
 import { Card, CardContent } from "./ui/card";
+import { Link } from "react-router";
 
 export function Nav() {
   return (
@@ -34,9 +35,11 @@ export function Nav() {
 
           {/* CTA Buttons */}
           <div className="hidden md:flex items-center space-x-4">
-            <Button variant="outline" size="sm" className="border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400">
-              Sign In
-            </Button>
+            <Link to="/login">
+              <Button variant="outline" size="sm" className="border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400">
+                Sign In
+              </Button>
+            </Link>
             <Button size="sm" className="relative overflow-hidden bg-gray-800 hover:bg-gray-700 text-white transition-all duration-300 group">
               <span className="relative z-10">Create Portfolio</span>
               <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:translate-x-full transition-transform duration-1000 ease-out"></div>
