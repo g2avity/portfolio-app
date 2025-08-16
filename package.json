@@ -25,6 +25,7 @@
     "db:studio": "prisma studio"
   },
   "dependencies": {
+    "@curvenote/remix-auth-google": "^3.0.0",
     "@prisma/client": "^6.13.0",
     "@radix-ui/react-slot": "^1.2.3",
     "@react-router/node": "^7.7.1",
@@ -36,6 +37,9 @@
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-router": "^7.7.1",
+    "remix-auth": "^4.2.0",
+    "remix-auth-form": "^3.0.0",
+    "remix-auth-oauth2": "^3.4.1",
     "tailwind-merge": "^3.3.1"
   },
   "devDependencies": {
