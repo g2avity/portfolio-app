@@ -5,12 +5,31 @@ import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { useSearchParams } from "react-router";
 
 import { authenticator } from "../lib/auth.server";
+import { verifyUserCredentials } from "../lib/db.server";
+import { createUserSession } from "../lib/session.server";
 
 export async function action({ request }: ActionFunctionArgs) {
+  const formData = await request.formData();
+  const email = formData.get("email") as string;
+  const password = formData.get("password") as string;
+
+  if (!email || !password) {
+    return redirect("/login?error=missing-fields");
+  }
+
   try {
-    return await authenticator.authenticate("user-pass", request);
+    // Verify credentials against database
+    const user = await verifyUserCredentials(email, password);
+    
+    if (!user) {
+      return redirect("/login?error=invalid-credentials");
+    }
+    
+    // Create session and redirect to dashboard
+    return createUserSession(user.id, "/dashboard");
   } catch (error) {
-    return redirect("/login?error=invalid-credentials");
+    console.error("Login error:", error);
+    return redirect("/login?error=server-error");
   }
 }
 
@@ -31,7 +50,10 @@ export default function Login() {
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-md p-4">
             <p className="text-sm text-red-800">
-              {error === "invalid-credentials" ? "Invalid email or password. Please try again." : "An error occurred. Please try again."}
+              {error === "invalid-credentials" && "Invalid email or password. Please try again."}
+              {error === "missing-fields" && "Please fill in all required fields."}
+              {error === "server-error" && "An error occurred. Please try again."}
+              {!["invalid-credentials", "missing-fields", "server-error"].includes(error) && "An error occurred. Please try again."}
             </p>
           </div>
         )}
@@ -76,7 +98,7 @@ export default function Login() {
             </div>
 
             {/* Email/Password Form */}
-            <Form method="post" action="/auth/user-pass" className="space-y-4">
+            <Form method="post" className="space-y-4">
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-gray-700">
                   Email address

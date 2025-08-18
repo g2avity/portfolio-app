@@ -38,23 +38,17 @@ export async function createUserSession(userId: string, redirectTo: string) {
   });
 }
 
+import { findUserById } from "./db.server";
+
 export async function getUserFromSession(request: Request) {
   const session = await getSession(request);
   const userId = session.get("userId");
   
   if (!userId) return null;
   
-  // TODO: Fetch user from database
-  // For now, return mock user
-  return {
-    id: userId,
-    username: "james-mcghee",
-    firstName: "James",
-    lastName: "McGhee",
-    email: "james@g2avity.com",
-    isPublic: true,
-    portfolioSlug: "james-mcghee"
-  };
+  // Fetch real user from database
+  const user = await findUserById(userId);
+  return user;
 }
 
 export async function requireUser(request: Request) {

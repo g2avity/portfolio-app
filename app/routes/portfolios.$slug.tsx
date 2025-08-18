@@ -3,45 +3,33 @@ import { useParams, Link } from "react-router";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 
+import { findUserBySlug } from "../lib/db.server";
+
 export async function loader({ params }: LoaderFunctionArgs) {
   const { slug } = params;
   
-  // TODO: Fetch user data by slug from database
+  if (!slug) {
+    throw new Error("Portfolio slug is required");
+  }
+  
+  // Fetch real user data by slug from database
+  const user = await findUserBySlug(slug);
+  
+  if (!user) {
+    throw new Error("Portfolio not found");
+  }
+  
+  if (!user.isPublic) {
+    throw new Error("This portfolio is private");
+  }
+  
+  // TODO: Fetch real experiences, skills, and star memos from database
   // For now, return mock data
   return {
-    user: {
-      username: slug,
-      firstName: "James",
-      lastName: "McGhee",
-      bio: "Professional developer with expertise in modern web technologies",
-      isPublic: true,
-      portfolioSlug: slug
-    },
-    experiences: [
-      {
-        id: "1",
-        title: "Senior Developer",
-        companyName: "Tech Corp",
-        description: "Led development of enterprise applications",
-        startDate: "2023-01-01",
-        endDate: null,
-        isCurrent: true
-      }
-    ],
-    skills: [
-      { id: "1", name: "React", proficiency: 5, category: "Frontend" },
-      { id: "2", name: "TypeScript", proficiency: 4, category: "Language" }
-    ],
-    starMemos: [
-      {
-        id: "1",
-        title: "Project Launch Success",
-        situation: "Led team through complex project",
-        task: "Deliver MVP on time",
-        action: "Implemented agile methodology",
-        result: "Launched 2 weeks early"
-      }
-    ]
+    user,
+    experiences: [],
+    skills: [],
+    starMemos: []
   };
 }
 

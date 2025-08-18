@@ -3,6 +3,7 @@ import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import type { ActionFunctionArgs } from "react-router";
 import { createUserSession } from "../lib/session.server";
+import { createUser } from "../lib/db.server";
 
 export async function action({ request }: ActionFunctionArgs) {
   const formData = await request.formData();
@@ -22,11 +23,35 @@ export async function action({ request }: ActionFunctionArgs) {
     throw new Error("All fields are required");
   }
 
-  // TODO: Add proper password hashing and database integration
-  // For now, create a mock user and session
-  const mockUserId = "user-" + Date.now();
-  
-  return createUserSession(mockUserId, "/dashboard");
+  try {
+    // Create real user in database
+    const user = await createUser({
+      username,
+      email,
+      firstName,
+      lastName,
+      password
+    });
+    
+    // Create session and redirect to dashboard
+    return createUserSession(user.id, "/dashboard");
+  } catch (error) {
+    console.error("Registration error:", error);
+    
+    // Handle specific errors
+    if (error instanceof Error) {
+      if (error.message.includes("Unique constraint")) {
+        if (error.message.includes("username")) {
+          throw new Error("Username already taken. Please choose another one.");
+        }
+        if (error.message.includes("email")) {
+          throw new Error("Email already registered. Please use a different email or sign in.");
+        }
+      }
+    }
+    
+    throw new Error("Registration failed. Please try again.");
+  }
 }
 
 export default function Register() {

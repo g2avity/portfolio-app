@@ -8,11 +8,12 @@ import { requireUser } from "../lib/session.server";
 export async function loader({ request }: LoaderFunctionArgs) {
   const user = await requireUser(request);
   
-  // TODO: Fetch portfolio stats from database
+  // TODO: Fetch real portfolio stats from database
+  // For now, using mock stats
   const portfolioStats = {
-    experiences: 3,
-    skills: 8,
-    starMemos: 2
+    experiences: 0, // Will be fetched from database
+    skills: 0,      // Will be fetched from database
+    starMemos: 0    // Will be fetched from database
   };
   
   return { user, portfolioStats };

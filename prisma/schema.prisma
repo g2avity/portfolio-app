@@ -112,6 +112,7 @@ model Account {
   type              String
   provider          String
   providerAccountId String
+  password          String? // For credentials-based authentication
   refresh_token     String? @db.Text
   access_token      String? @db.Text
   expires_at        Int?
