@@ -1,11 +1,38 @@
-import { Form, Link } from "react-router";
+import { Form, Link, redirect } from "react-router";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
+import { useSearchParams } from "react-router";
+
+export async function action({ request }: ActionFunctionArgs) {
+  const formData = await request.formData();
+  const email = formData.get("email") as string;
+  const password = formData.get("password") as string;
+
+  // Basic validation
+  if (!email || !password) {
+    throw new Error("Email and password are required");
+  }
+
+  // TODO: Add proper authentication logic
+  // For now, we'll just redirect to home with a mock login
+  
+  return redirect("/?message=Login successful!");
+}
 
 export default function Login() {
+  const [searchParams] = useSearchParams();
+  const message = searchParams.get("message");
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
+        {message && (
+          <div className="bg-green-50 border border-green-200 rounded-md p-4">
+            <p className="text-sm text-green-800">{message}</p>
+          </div>
+        )}
+        
         <div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
             Sign in to your account

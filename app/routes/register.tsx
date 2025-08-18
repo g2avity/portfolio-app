@@ -1,6 +1,31 @@
-import { Form, Link } from "react-router";
+import { Form, Link, redirect } from "react-router";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import type { ActionFunctionArgs } from "react-router";
+
+export async function action({ request }: ActionFunctionArgs) {
+  const formData = await request.formData();
+  const firstName = formData.get("firstName") as string;
+  const lastName = formData.get("lastName") as string;
+  const username = formData.get("username") as string;
+  const email = formData.get("email") as string;
+  const password = formData.get("password") as string;
+  const confirmPassword = formData.get("confirmPassword") as string;
+
+  // Basic validation
+  if (password !== confirmPassword) {
+    throw new Error("Passwords do not match");
+  }
+
+  if (!firstName || !lastName || !username || !email || !password) {
+    throw new Error("All fields are required");
+  }
+
+  // TODO: Add proper password hashing and database integration
+  // For now, we'll just redirect to login with a success message
+  
+  return redirect("/login?message=Registration successful! Please sign in.");
+}
 
 export default function Register() {
   return (
