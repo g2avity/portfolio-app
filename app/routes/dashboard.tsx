@@ -4,6 +4,18 @@ import { Button } from "../components/ui/button";
 import { Link } from "react-router";
 
 import { requireUser } from "../lib/session.server";
+import { ErrorBoundary as AppErrorBoundary } from "../components/error-boundary";
+
+export function ErrorBoundary({ error }: { error: unknown }) {
+  return (
+    <AppErrorBoundary 
+      error={error} 
+      title="Dashboard Error"
+      showBackButton={true}
+      showHomeButton={true}
+    />
+  );
+}
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const user = await requireUser(request);

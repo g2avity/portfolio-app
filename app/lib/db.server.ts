@@ -1,8 +1,9 @@
 import bcrypt from "bcrypt";
-import { PrismaClient } from "@prisma/client";
 import { singleton } from "./singleton";
 
-function getPrismaClient() {
+async function getPrismaClient() {
+  const { PrismaClient } = await import("@prisma/client");
+  
   const { DATABASE_URL } = process.env;
   
   if (!DATABASE_URL) {
@@ -63,8 +64,9 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
 // Create new user in database
 export async function createUser(userData: CreateUserData): Promise<User> {
   const hashedPassword = await hashPassword(userData.password);
+  const client = await prisma;
   
-  const user = await prisma.user.create({
+  const user = await client.user.create({
     data: {
       username: userData.username,
       email: userData.email,
@@ -99,7 +101,8 @@ export async function createUser(userData: CreateUserData): Promise<User> {
 
 // Find user by email
 export async function findUserByEmail(email: string): Promise<User | null> {
-  const user = await prisma.user.findUnique({
+  const client = await prisma;
+  const user = await client.user.findUnique({
     where: { email },
     select: {
       id: true,
@@ -119,7 +122,8 @@ export async function findUserByEmail(email: string): Promise<User | null> {
 
 // Find user by ID
 export async function findUserById(id: string): Promise<User | null> {
-  const user = await prisma.user.findUnique({
+  const client = await prisma;
+  const user = await client.user.findUnique({
     where: { id },
     select: {
       id: true,
@@ -139,7 +143,8 @@ export async function findUserById(id: string): Promise<User | null> {
 
 // Find user by username/slug
 export async function findUserBySlug(slug: string): Promise<User | null> {
-  const user = await prisma.user.findUnique({
+  const client = await prisma;
+  const user = await client.user.findUnique({
     where: { portfolioSlug: slug },
     select: {
       id: true,
@@ -159,7 +164,8 @@ export async function findUserBySlug(slug: string): Promise<User | null> {
 
 // Verify user credentials
 export async function verifyUserCredentials(email: string, password: string): Promise<User | null> {
-  const user = await prisma.user.findUnique({
+  const client = await prisma;
+  const user = await client.user.findUnique({
     where: { email },
     include: {
       accounts: {
@@ -197,7 +203,8 @@ export async function verifyUserCredentials(email: string, password: string): Pr
 
 // Close Prisma connection
 export async function closePrisma() {
-  await prisma.$disconnect();
+  const client = await prisma;
+  await client.$disconnect();
 }
 
 // Graceful shutdown handler

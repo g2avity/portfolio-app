@@ -4,9 +4,20 @@ import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { useSearchParams } from "react-router";
 
-import { authenticator } from "../lib/auth.server";
 import { verifyUserCredentials } from "../lib/db.server";
 import { createUserSession } from "../lib/session.server";
+import { ErrorBoundary as AppErrorBoundary } from "../components/error-boundary";
+
+export function ErrorBoundary({ error }: { error: unknown }) {
+  return (
+    <AppErrorBoundary 
+      error={error} 
+      title="Login Error"
+      showBackButton={true}
+      showHomeButton={true}
+    />
+  );
+}
 
 export async function action({ request }: ActionFunctionArgs) {
   const formData = await request.formData();

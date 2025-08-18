@@ -2,6 +2,7 @@ import type { LoaderFunctionArgs } from "react-router";
 import { useParams, Link } from "react-router";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
+import { ErrorBoundary as AppErrorBoundary } from "../components/error-boundary";
 
 import { findUserBySlug } from "../lib/db.server";
 
@@ -9,18 +10,18 @@ export async function loader({ params }: LoaderFunctionArgs) {
   const { slug } = params;
   
   if (!slug) {
-    throw new Error("Portfolio slug is required");
+    throw new Response("Portfolio slug is required", { status: 400 });
   }
   
   // Fetch real user data by slug from database
   const user = await findUserBySlug(slug);
   
   if (!user) {
-    throw new Error("Portfolio not found");
+    throw new Response("Portfolio not found", { status: 404 });
   }
   
   if (!user.isPublic) {
-    throw new Error("This portfolio is private");
+    throw new Response("This portfolio is private", { status: 403 });
   }
   
   // TODO: Fetch real experiences, skills, and star memos from database
@@ -31,6 +32,17 @@ export async function loader({ params }: LoaderFunctionArgs) {
     skills: [],
     starMemos: []
   };
+}
+
+export function ErrorBoundary({ error }: { error: unknown }) {
+  return (
+    <AppErrorBoundary 
+      error={error} 
+      title="Portfolio Error"
+      showBackButton={true}
+      showHomeButton={true}
+    />
+  );
 }
 
 export default function UserPortfolio() {

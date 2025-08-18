@@ -12,6 +12,7 @@ export default defineConfig({
       'Cache-Control': 'no-cache, no-store, must-revalidate',
     },
   },
+
   // Force Vite to not cache static assets
   build: {
     rollupOptions: {

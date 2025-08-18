@@ -4,6 +4,18 @@ import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import type { ActionFunctionArgs } from "react-router";
 import { createUserSession } from "../lib/session.server";
 import { createUser } from "../lib/db.server";
+import { ErrorBoundary as AppErrorBoundary } from "../components/error-boundary";
+
+export function ErrorBoundary({ error }: { error: unknown }) {
+  return (
+    <AppErrorBoundary 
+      error={error} 
+      title="Registration Error"
+      showBackButton={true}
+      showHomeButton={true}
+    />
+  );
+}
 
 export async function action({ request }: ActionFunctionArgs) {
   const formData = await request.formData();

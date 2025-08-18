@@ -12,6 +12,9 @@
       "import": "./dist/index.js"
     }
   },
+  "imports": {
+    "@prisma/client": "./node_modules/@prisma/client/index.js"
+  },
   "scripts": {
     "build": "react-router build",
     "dev": "react-router dev",
