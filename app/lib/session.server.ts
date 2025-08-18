@@ -1,4 +1,4 @@
-import { createCookieSessionStorage } from "react-router";
+import { createCookieSessionStorage, redirect } from "react-router";
 
 // Create session storage
 export const sessionStorage = createCookieSessionStorage({
@@ -24,4 +24,45 @@ export async function commitSession(session: any) {
 
 export async function destroySession(session: any) {
   return sessionStorage.destroySession(session);
+}
+
+// Helper functions for user sessions
+export async function createUserSession(userId: string, redirectTo: string) {
+  const session = await sessionStorage.getSession();
+  session.set("userId", userId);
+  
+  return redirect(redirectTo, {
+    headers: {
+      "Set-Cookie": await sessionStorage.commitSession(session),
+    },
+  });
+}
+
+export async function getUserFromSession(request: Request) {
+  const session = await getSession(request);
+  const userId = session.get("userId");
+  
+  if (!userId) return null;
+  
+  // TODO: Fetch user from database
+  // For now, return mock user
+  return {
+    id: userId,
+    username: "james-mcghee",
+    firstName: "James",
+    lastName: "McGhee",
+    email: "james@g2avity.com",
+    isPublic: true,
+    portfolioSlug: "james-mcghee"
+  };
+}
+
+export async function requireUser(request: Request) {
+  const user = await getUserFromSession(request);
+  
+  if (!user) {
+    throw redirect("/login");
+  }
+  
+  return user;
 }

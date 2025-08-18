@@ -1,5 +1,4 @@
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
-import { Nav } from "../components/nav";
 import { 
   Globe, 
   Database, 
@@ -20,9 +19,7 @@ import {
 
 export default function About() {
   return (
-    <>
-      <Nav />
-      <main className="min-h-screen bg-gray-50 py-16">
+    <main className="min-h-screen bg-gray-50 py-16">
         <div className="container mx-auto px-4 max-w-7xl">
           {/* Under Construction Card */}
           <Card className="shadow-lg mb-8 border-orange-200 bg-orange-50">
@@ -164,6 +161,5 @@ export default function About() {
           </div>
         </div>
       </main>
-    </>
   );
 }

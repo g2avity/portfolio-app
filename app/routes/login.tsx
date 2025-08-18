@@ -4,25 +4,20 @@ import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { useSearchParams } from "react-router";
 
+import { authenticator } from "../lib/auth.server";
+
 export async function action({ request }: ActionFunctionArgs) {
-  const formData = await request.formData();
-  const email = formData.get("email") as string;
-  const password = formData.get("password") as string;
-
-  // Basic validation
-  if (!email || !password) {
-    throw new Error("Email and password are required");
+  try {
+    return await authenticator.authenticate("user-pass", request);
+  } catch (error) {
+    return redirect("/login?error=invalid-credentials");
   }
-
-  // TODO: Add proper authentication logic
-  // For now, we'll just redirect to home with a mock login
-  
-  return redirect("/?message=Login successful!");
 }
 
 export default function Login() {
   const [searchParams] = useSearchParams();
   const message = searchParams.get("message");
+  const error = searchParams.get("error");
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -30,6 +25,14 @@ export default function Login() {
         {message && (
           <div className="bg-green-50 border border-green-200 rounded-md p-4">
             <p className="text-sm text-green-800">{message}</p>
+          </div>
+        )}
+        
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-md p-4">
+            <p className="text-sm text-red-800">
+              {error === "invalid-credentials" ? "Invalid email or password. Please try again." : "An error occurred. Please try again."}
+            </p>
           </div>
         )}
         

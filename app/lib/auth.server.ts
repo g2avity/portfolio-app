@@ -10,10 +10,12 @@ import { sessionStorage } from "./session.server";
 // Define the User type for authentication
 export interface User {
   id: string;
-  email: string;
   username: string;
   firstName: string;
   lastName: string;
+  email: string;
+  isPublic: boolean;
+  portfolioSlug: string;
 }
 
 // Create the authenticator instance
@@ -28,15 +30,21 @@ authenticator.use(
     const email = form.get("email") as string;
     const password = form.get("password") as string;
 
-    // Temporarily return a mock user for testing
-    // TODO: Implement proper database authentication
-    return {
-      id: "temp-user-id",
-      email: email,
-      username: email.split('@')[0],
-      firstName: "Test",
-      lastName: "User"
-    };
+    // TODO: Validate against database
+    // For now, mock authentication
+    if (email === "james@g2avity.com" && password === "password") {
+      return {
+        id: "user-123",
+        username: "james-mcghee",
+        firstName: "James",
+        lastName: "McGhee",
+        email: "james@g2avity.com",
+        isPublic: true,
+        portfolioSlug: "james-mcghee"
+      };
+    }
+
+    throw new Error("Invalid credentials");
   }),
   "user-pass"
 );

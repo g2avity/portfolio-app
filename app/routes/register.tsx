@@ -2,6 +2,7 @@ import { Form, Link, redirect } from "react-router";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import type { ActionFunctionArgs } from "react-router";
+import { createUserSession } from "../lib/session.server";
 
 export async function action({ request }: ActionFunctionArgs) {
   const formData = await request.formData();
@@ -22,9 +23,10 @@ export async function action({ request }: ActionFunctionArgs) {
   }
 
   // TODO: Add proper password hashing and database integration
-  // For now, we'll just redirect to login with a success message
+  // For now, create a mock user and session
+  const mockUserId = "user-" + Date.now();
   
-  return redirect("/login?message=Registration successful! Please sign in.");
+  return createUserSession(mockUserId, "/dashboard");
 }
 
 export default function Register() {

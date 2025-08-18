@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
-import { Nav } from "../components/nav";
 
 // Sample portfolio data - replace with real data later
 const samplePortfolios = [
@@ -56,9 +55,7 @@ export default function Portfolios() {
   });
 
   return (
-    <>
-      <Nav />
-      <main className="min-h-screen bg-gray-50">
+    <main className="min-h-screen bg-gray-50">
         <div className="container mx-auto px-4 py-8">
           {/* Header */}
           <div className="text-center mb-12">
@@ -175,6 +172,5 @@ export default function Portfolios() {
           </div>
         </div>
       </main>
-    </>
   );
 }
