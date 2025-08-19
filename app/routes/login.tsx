@@ -4,8 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { useSearchParams } from "react-router";
 
-import { verifyUserCredentials } from "../lib/db.server";
-import { createUserSession } from "../lib/session.server";
+import { authenticator } from "../lib/auth.server";
 import { ErrorBoundary as AppErrorBoundary } from "../components/error-boundary";
 
 export function ErrorBoundary({ error }: { error: unknown }) {
@@ -20,24 +19,9 @@ export function ErrorBoundary({ error }: { error: unknown }) {
 }
 
 export async function action({ request }: ActionFunctionArgs) {
-  const formData = await request.formData();
-  const email = formData.get("email") as string;
-  const password = formData.get("password") as string;
-
-  if (!email || !password) {
-    return redirect("/login?error=missing-fields");
-  }
-
   try {
-    // Verify credentials against database
-    const user = await verifyUserCredentials(email, password);
-    
-    if (!user) {
-      return redirect("/login?error=invalid-credentials");
-    }
-    
-    // Create session and redirect to dashboard
-    return createUserSession(user.id, "/dashboard");
+    // Use the authenticator to handle login
+    return await authenticator.authenticate("user-pass", request);
   } catch (error) {
     console.error("Login error:", error);
     return redirect("/login?error=server-error");

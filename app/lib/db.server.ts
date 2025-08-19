@@ -201,6 +201,121 @@ export async function verifyUserCredentials(email: string, password: string): Pr
   };
 }
 
+// Create or link a user from an OAuth provider (e.g., Google)
+export async function findOrCreateUserFromOAuth(params: {
+  provider: string;
+  providerAccountId: string;
+  email: string;
+  firstName?: string;
+  lastName?: string;
+}): Promise<User> {
+  const { provider, providerAccountId, email } = params;
+  const firstName = params.firstName ?? "";
+  const lastName = params.lastName ?? "";
+  const client = await prisma;
+
+  // 1) If this provider account already exists, return its user
+  const existingAccount = await client.account.findUnique({
+    where: {
+      provider_providerAccountId: { provider, providerAccountId },
+    },
+    include: {
+      user: {
+        select: {
+          id: true,
+          username: true,
+          email: true,
+          firstName: true,
+          lastName: true,
+          isPublic: true,
+          portfolioSlug: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      },
+    },
+  });
+
+  if (existingAccount?.user) {
+    return existingAccount.user;
+  }
+
+  // 2) Try to find an existing user by email and link the new provider account
+  const existingUser = await client.user.findUnique({
+    where: { email },
+    select: {
+      id: true,
+      username: true,
+      email: true,
+      firstName: true,
+      lastName: true,
+      isPublic: true,
+      portfolioSlug: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  });
+
+  if (existingUser) {
+    await client.account.create({
+      data: {
+        userId: existingUser.id,
+        type: provider,
+        provider,
+        providerAccountId,
+      },
+    });
+    return existingUser;
+  }
+
+  // 3) Otherwise create a brand-new user and account
+  const username = await generateUniqueUsername(client, email);
+
+  const newUser = await client.user.create({
+    data: {
+      username,
+      email,
+      firstName,
+      lastName,
+      isPublic: false,
+      portfolioSlug: username,
+      accounts: {
+        create: {
+          type: provider,
+          provider,
+          providerAccountId,
+        },
+      },
+    },
+    select: {
+      id: true,
+      username: true,
+      email: true,
+      firstName: true,
+      lastName: true,
+      isPublic: true,
+      portfolioSlug: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  });
+
+  return newUser;
+}
+
+async function generateUniqueUsername(client: any, email: string): Promise<string> {
+  const base = email.split("@")[0].toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  let candidate = base || "user";
+  let suffix = 0;
+
+  while (true) {
+    const exists = await client.user.findUnique({ where: { username: candidate } });
+    if (!exists) return candidate;
+    suffix += 1;
+    candidate = `${base}-${suffix}`;
+  }
+}
+
 // Close Prisma connection
 export async function closePrisma() {
   const client = await prisma;

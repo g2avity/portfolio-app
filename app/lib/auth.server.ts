@@ -1,11 +1,9 @@
 import { Authenticator } from "remix-auth";
 import { FormStrategy } from "remix-auth-form";
-import { OAuth2Strategy } from "remix-auth-oauth2";
 import { GoogleStrategy } from "@curvenote/remix-auth-google";
 import { sessionStorage } from "./session.server";
-
-// Temporarily disable Prisma for basic setup
-// const prisma = new PrismaClient();
+import { findOrCreateUserFromOAuth, verifyUserCredentials } from "./db.server";
+import { redirect } from "react-router";
 
 // Define the User type for authentication
 export interface User {
@@ -19,34 +17,103 @@ export interface User {
 }
 
 // Create the authenticator instance
-export const authenticator = new Authenticator<User>();
+export const authenticator = new Authenticator<Response>();
 
-// Google OAuth Strategy - temporarily disabled for basic setup
-// We'll implement this after getting the basic auth working
-
-// Form Strategy for email/password (optional fallback)
+// Google OAuth Strategy
 authenticator.use(
-  new FormStrategy(async ({ form }) => {
-    const email = form.get("email") as string;
-    const password = form.get("password") as string;
+  new GoogleStrategy(
+    {
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      redirectURI: process.env.GOOGLE_CALLBACK_URL!,
+    },
+    async (options) => {
+      // For OAuth2, we need to handle the callback parameters correctly
+      // The GoogleStrategy provides options with tokens
+      if (!options || typeof options !== 'object') {
+        throw new Error("Invalid OAuth callback parameters");
+      }
 
-    // TODO: Validate against database
-    // For now, mock authentication
-    if (email === "james@g2avity.com" && password === "password") {
-      return {
-        id: "user-123",
-        username: "james-mcghee",
-        firstName: "James",
-        lastName: "McGhee",
-        email: "james@g2avity.com",
-        isPublic: true,
-        portfolioSlug: "james-mcghee"
-      };
+      // Extract tokens and fetch user profile
+      const { tokens } = options;
+      if (!tokens?.accessToken) {
+        throw new Error("Missing access token from Google OAuth");
+      }
+
+      // Extract the actual access token value (it might be a getter function)
+      const accessToken = typeof tokens.accessToken === 'function' 
+        ? tokens.accessToken() 
+        : tokens.accessToken;
+
+      // Fetch user profile from Google using the access token
+      const profileResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+        },
+      });
+
+      if (!profileResponse.ok) {
+        throw new Error("Failed to fetch user profile from Google");
+      }
+
+      const profile = await profileResponse.json();
+      
+      const email = profile.email;
+      const firstName = profile.given_name || "";
+      const lastName = profile.family_name || "";
+      const providerAccountId = profile.sub; // Google uses 'sub' for user ID
+
+      // Find or create user from OAuth
+      const user = await findOrCreateUserFromOAuth({
+        provider: "google",
+        providerAccountId,
+        email,
+        firstName,
+        lastName,
+      });
+
+      // Create session manually
+      const session = await sessionStorage.getSession();
+      session.set("userId", user.id);
+      
+      return redirect("/dashboard", {
+        headers: {
+          "Set-Cookie": await sessionStorage.commitSession(session),
+        },
+      });
     }
-
-    throw new Error("Invalid credentials");
-  }),
-  "user-pass"
+  ),
+  "google"
 );
 
-// export { prisma };
+// Form Strategy for email/password
+authenticator.use(
+  new FormStrategy(
+    async ({ form }) => {
+      const email = form.get("email") as string;
+      const password = form.get("password") as string;
+
+      if (!email || !password) {
+        throw new Error("Email and password are required");
+      }
+
+      // Validate against database
+      const user = await verifyUserCredentials(email, password);
+      
+      if (!user) {
+        throw new Error("Invalid credentials");
+      }
+
+      // Create session manually
+      const session = await sessionStorage.getSession();
+      session.set("userId", user.id);
+      
+      return redirect("/dashboard", {
+        headers: {
+          "Set-Cookie": await sessionStorage.commitSession(session),
+        },
+      });
+    }
+  ),
+  "user-pass"
+);
