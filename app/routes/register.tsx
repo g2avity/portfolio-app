@@ -1,0 +1,191 @@
+import { Form, Link, redirect } from "react-router";
+import { Button } from "../components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import type { ActionFunctionArgs } from "react-router";
+import { createUserSession } from "../lib/session.server";
+import { createUser } from "../lib/db.server";
+import { ErrorBoundary as AppErrorBoundary } from "../components/error-boundary";
+
+export function ErrorBoundary({ error }: { error: unknown }) {
+  return (
+    <AppErrorBoundary 
+      error={error} 
+      title="Registration Error"
+      showBackButton={true}
+      showHomeButton={true}
+    />
+  );
+}
+
+export async function action({ request }: ActionFunctionArgs) {
+  const formData = await request.formData();
+  const firstName = formData.get("firstName") as string;
+  const lastName = formData.get("lastName") as string;
+  const username = formData.get("username") as string;
+  const email = formData.get("email") as string;
+  const password = formData.get("password") as string;
+  const confirmPassword = formData.get("confirmPassword") as string;
+
+  // Basic validation
+  if (password !== confirmPassword) {
+    throw new Error("Passwords do not match");
+  }
+
+  if (!firstName || !lastName || !username || !email || !password) {
+    throw new Error("All fields are required");
+  }
+
+  try {
+    // Create real user in database
+    const user = await createUser({
+      username,
+      email,
+      firstName,
+      lastName,
+      password
+    });
+    
+    // Create session and redirect to dashboard
+    return createUserSession(user.id, "/dashboard");
+  } catch (error) {
+    console.error("Registration error:", error);
+    
+    // Handle specific errors
+    if (error instanceof Error) {
+      if (error.message.includes("Unique constraint")) {
+        if (error.message.includes("username")) {
+          throw new Error("Username already taken. Please choose another one.");
+        }
+        if (error.message.includes("email")) {
+          throw new Error("Email already registered. Please use a different email or sign in.");
+        }
+      }
+    }
+    
+    throw new Error("Registration failed. Please try again.");
+  }
+}
+
+export default function Register() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8">
+        <div>
+          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+            Create your account
+          </h2>
+          <p className="mt-2 text-center text-sm text-gray-600">
+            Or{" "}
+            <Link to="/login" className="font-medium text-indigo-600 hover:text-indigo-500">
+              sign in to your existing account
+            </Link>
+          </p>
+        </div>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle>Account Information</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Registration Form */}
+            <Form method="post" className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="firstName" className="block text-sm font-medium text-gray-700">
+                    First Name
+                  </label>
+                  <input
+                    id="firstName"
+                    name="firstName"
+                    type="text"
+                    required
+                    className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                    placeholder="First name"
+                  />
+                </div>
+                
+                <div>
+                  <label htmlFor="lastName" className="block text-sm font-medium text-gray-700">
+                    Last Name
+                  </label>
+                  <input
+                    id="lastName"
+                    name="lastName"
+                    type="text"
+                    required
+                    className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                    placeholder="Last name"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="username" className="block text-sm font-medium text-gray-700">
+                  Username
+                </label>
+                <input
+                  id="username"
+                  name="username"
+                  type="text"
+                  required
+                  className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                  placeholder="Choose a username"
+                />
+                <p className="mt-1 text-xs text-gray-500">This will be used in your portfolio URL</p>
+              </div>
+
+              <div>
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                  Email address
+                </label>
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                  placeholder="Enter your email"
+                />
+              </div>
+              
+              <div>
+                <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                  Password
+                </label>
+                <input
+                  id="password"
+                  name="password"
+                  type="password"
+                  autoComplete="new-password"
+                  required
+                  className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                  placeholder="Create a password"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
+                  Confirm Password
+                </label>
+                <input
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  type="password"
+                  autoComplete="new-password"
+                  required
+                  className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                  placeholder="Confirm your password"
+                />
+              </div>
+
+              <Button type="submit" className="w-full">
+                Create Account
+              </Button>
+            </Form>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}

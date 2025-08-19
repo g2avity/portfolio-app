@@ -6,11 +6,13 @@ import tsconfigPaths from "vite-tsconfig-paths";
 export default defineConfig({
   plugins: [tailwindcss(), reactRouter(), tsconfigPaths()],
   server: {
+    port: 3000,
     // Disable caching for static assets
     headers: {
       'Cache-Control': 'no-cache, no-store, must-revalidate',
     },
   },
+
   // Force Vite to not cache static assets
   build: {
     rollupOptions: {

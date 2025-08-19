@@ -1,12 +1,10 @@
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
-import { Nav } from "./nav";
+import { Link } from "react-router";
 
 export function Hero() {
   return (
-    <>
-      <Nav />
-      <main className="flex items-center justify-center min-h-screen bg-gray-50">
+    <main className="flex items-center justify-center min-h-screen bg-gray-50">
         <div className="container mx-auto px-4 py-16">
           {/* Hero Cards - Side by Side */}
           <div className="flex flex-col lg:flex-row gap-8 items-stretch justify-center max-w-6xl mx-auto">
@@ -39,19 +37,22 @@ export function Hero() {
                   in a beautifully designed, mobile-responsive format.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4">
-                  <Button className="relative overflow-hidden bg-gray-800 hover:bg-gray-700 text-white transition-all duration-300 group">
-                    <span className="relative z-10">Browse Portfolios</span>
-                    <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:translate-x-full transition-transform duration-1000 ease-out"></div>
-                  </Button>
-                  <Button variant="outline" className="border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400">
-                    Get Started
-                  </Button>
+                  <Link to="/portfolios">
+                    <Button className="relative overflow-hidden bg-gray-800 hover:bg-gray-700 text-white transition-all duration-300 group">
+                      <span className="relative z-10">Browse Portfolios</span>
+                      <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:translate-x-full transition-transform duration-1000 ease-out"></div>
+                    </Button>
+                  </Link>
+                  <Link to="/register">
+                    <Button variant="outline" className="border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400">
+                      Get Started
+                    </Button>
+                  </Link>
                 </div>
               </CardContent>
             </Card>
           </div>
         </div>
       </main>
-    </>
   );
 }
