@@ -12,8 +12,19 @@ export interface User {
   firstName: string;
   lastName: string;
   email: string;
+  birthDate: Date | null;
+  phone: string | null;
+  address: string | null;
+  city: string | null;
+  state: string | null;
+  country: string | null;
+  bio: string | null;
+  linkedinUrl: string | null;
+  githubUrl: string | null;
+  websiteUrl: string | null;
+  avatarUrl: string | null;
   isPublic: boolean;
-  portfolioSlug: string;
+  portfolioSlug: string | null;
 }
 
 // Create the authenticator instance
