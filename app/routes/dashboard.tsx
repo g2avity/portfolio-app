@@ -10,6 +10,12 @@ import { DashboardSidebar } from "../components/dashboard-sidebar";
 import { ExperienceForm } from "../components/experience-form";
 import { SkillsForm } from "../components/skills-form";
 import { CustomSectionForm } from "../components/custom-section-form";
+import { ProfileForm } from "../components/profile-form";
+import { getUserExperiences, getUserExperienceCount, createExperience, updateExperience, deleteExperience, getUserSkills, getUserSkillCount, createSkill, updateSkill, deleteSkill, updateUserProfile } from "../lib/db.server";
+import { testBlobConnection } from "../lib/blob.server";
+import { redirect } from "react-router";
+import { RichTextDisplay } from "../components/rich-text-display";
+import { ConfirmationModal } from "../components/confirmation-modal";
 
 export function ErrorBoundary({ error }: { error: unknown }) {
   return (
@@ -25,46 +31,528 @@ export function ErrorBoundary({ error }: { error: unknown }) {
 export async function loader({ request }: LoaderFunctionArgs) {
   const user = await requireUser(request);
   
-  // TODO: Fetch real portfolio stats from database
-  // For now, using mock stats
+  // Fetch real portfolio stats from database
+  const [experiences, experienceCount, skills, skillsCount, starMemosCount] = await Promise.all([
+    getUserExperiences(user.id),
+    getUserExperienceCount(user.id),
+    getUserSkills(user.id),
+    getUserSkillCount(user.id),
+    // TODO: Implement custom sections counting
+    Promise.resolve(0), // star memos count placeholder
+  ]);
+  
   const portfolioStats = {
-    experiences: 0, // Will be fetched from database
-    skills: 0,      // Will be fetched from database
-    starMemos: 0    // Will be fetched from database
+    experiences: experienceCount,
+    skills: skillsCount,
+    starMemos: starMemosCount
   };
   
-  return { user, portfolioStats };
+  // Debug: Log user data to see if avatarUrl is present
+  console.log("🔍 Loader - User data:", {
+    id: user.id,
+    name: `${user.firstName} ${user.lastName}`,
+    avatarUrl: user.avatarUrl,
+    hasAvatar: !!user.avatarUrl
+  });
+  
+  // Test blob connection
+  try {
+    await testBlobConnection();
+  } catch (error) {
+    console.error("❌ Blob connection test failed:", error);
+  }
+  
+  return { user, portfolioStats, experiences, skills };
 }
 
-import { useLoaderData } from "react-router";
-import { useState } from "react";
+export async function action({ request }: LoaderFunctionArgs) {
+  console.log("🚀 Action function entry point");
+  
+  const user = await requireUser(request);
+  console.log("👤 User authenticated:", { userId: user.id, email: user.email });
+  
+  const formData = await request.formData();
+  const action = formData.get("_action");
+  
+  console.log("📋 Form data received:", {
+    action,
+    hasFirstName: formData.has("firstName"),
+    hasLastName: formData.has("lastName"),
+    hasAvatar: formData.has("avatar"),
+    formDataKeys: Array.from(formData.keys())
+  });
+  
+  if (action === "createExperience") {
+    const title = formData.get("title") as string;
+    const companyName = formData.get("companyName") as string;
+    const description = formData.get("description") as string;
+    const startDate = new Date(formData.get("startDate") as string);
+    const endDate = formData.get("endDate") ? new Date(formData.get("endDate") as string) : undefined;
+    const isCurrent = formData.get("isCurrent") === "on";
+    const location = formData.get("location") as string;
+    
+    if (!title || !companyName || !description || !startDate) {
+      return { 
+        success: false, 
+        error: "Missing experience fields",
+        details: "Title, company name, description, and start date are required"
+      };
+    }
+    
+    try {
+      const experience = await createExperience({
+        title,
+        companyName,
+        description,
+        startDate,
+        endDate,
+        isCurrent,
+        location,
+        userId: user.id,
+      });
+      
+      return { 
+        success: true, 
+        type: "experience-created",
+        title,
+        company: companyName
+      };
+    } catch (error) {
+      console.error("Failed to create experience:", error);
+      return { 
+        success: false, 
+        error: "Failed to create experience",
+        details: error instanceof Error ? error.message : "Unknown error"
+      };
+    }
+  }
+  
+  if (action === "updateExperience") {
+    const experienceId = formData.get("experienceId") as string;
+    const title = formData.get("title") as string;
+    const companyName = formData.get("companyName") as string;
+    const description = formData.get("description") as string;
+    const startDate = new Date(formData.get("startDate") as string);
+    const endDate = formData.get("endDate") ? new Date(formData.get("endDate") as string) : undefined;
+    const isCurrent = formData.get("isCurrent") === "on";
+    const location = formData.get("location") as string;
+    
+    if (!experienceId || !title || !companyName || !description || !startDate) {
+      return { 
+        success: false, 
+        error: "Missing experience fields",
+        details: "Experience ID, title, company name, description, and start date are required"
+      };
+    }
+    
+    try {
+      await updateExperience({
+        id: experienceId,
+        title,
+        companyName,
+        description,
+        startDate,
+        endDate,
+        isCurrent,
+        location,
+        userId: user.id,
+      });
+      
+      return { 
+        success: true, 
+        type: "experience-updated",
+        title,
+        company: companyName
+      };
+    } catch (error) {
+      console.error("Failed to update experience:", error);
+      return { 
+        success: false, 
+        error: "Failed to update experience",
+        details: error instanceof Error ? error.message : "Unknown error"
+      };
+    }
+  }
+  
+  if (action === "deleteExperience") {
+    const experienceId = formData.get("experienceId") as string;
+    const title = formData.get("title") as string;
+    const companyName = formData.get("companyName") as string;
+    
+    if (!experienceId) {
+      return { 
+        success: false, 
+        error: "Missing experience ID",
+        details: "Experience ID is required for deletion"
+      };
+    }
+    
+    try {
+      await deleteExperience(experienceId, user.id);
+      
+      return { 
+        success: true, 
+        type: "experience-deleted",
+        title: title || 'Experience',
+        company: companyName || 'Unknown Company'
+      };
+    } catch (error) {
+      console.error("Failed to delete experience:", error);
+      return { 
+        success: false, 
+        error: "Failed to delete experience",
+        details: error instanceof Error ? error.message : "Unknown error"
+      };
+    }
+  }
+  
+  if (action === "createSkill") {
+    const name = formData.get("name") as string;
+    const description = formData.get("description") as string;
+    const category = formData.get("category") as string;
+    const proficiency = formData.get("proficiency") ? parseInt(formData.get("proficiency") as string) : undefined;
+    const yearsOfExperience = formData.get("yearsOfExperience") ? parseInt(formData.get("yearsOfExperience") as string) : undefined;
+    
+    console.log("🔍 Skill form data received:", {
+      name: name || "EMPTY",
+      description: description || "EMPTY", 
+      category: category || "EMPTY",
+      proficiency,
+      yearsOfExperience
+    });
+    
+    if (!name || !description) {
+      console.log("❌ Missing required skill fields");
+      return { 
+        success: false, 
+        error: "Missing skill fields",
+        details: "Name and description are required"
+      };
+    }
+    
+    try {
+      const skill = await createSkill({
+        name,
+        description,
+        category,
+        proficiency,
+        yearsOfExperience,
+        userId: user.id,
+      });
+      
+      return { 
+        success: true, 
+        type: "skill-created",
+        title: name,
+        company: "Skill"
+      };
+    } catch (error) {
+      console.error("Failed to create skill:", error);
+      return { 
+        success: false, 
+        error: "Failed to create skill",
+        details: error instanceof Error ? error.message : "Unknown error"
+      };
+    }
+  }
+  
+  if (action === "updateSkill") {
+    const skillId = formData.get("skillId") as string;
+    const name = formData.get("name") as string;
+    const description = formData.get("description") as string;
+    const category = formData.get("category") as string;
+    const proficiency = formData.get("proficiency") ? parseInt(formData.get("proficiency") as string) : undefined;
+    const yearsOfExperience = formData.get("yearsOfExperience") ? parseInt(formData.get("yearsOfExperience") as string) : undefined;
+    
+    if (!skillId || !name || !description) {
+      return { 
+        success: false, 
+        error: "Missing skill fields",
+        details: "Skill ID, name, and description are required"
+      };
+    }
+    
+    try {
+      await updateSkill({
+        id: skillId,
+        name,
+        description,
+        category,
+        proficiency,
+        yearsOfExperience,
+        userId: user.id,
+      });
+      
+      return { 
+        success: true, 
+        type: "skill-updated",
+        title: name,
+        company: "Skill"
+      };
+    } catch (error) {
+      console.error("Failed to update skill:", error);
+      return { 
+        success: false, 
+        error: "Failed to update skill",
+        details: error instanceof Error ? error.message : "Unknown error"
+      };
+    }
+  }
+  
+  if (action === "deleteSkill") {
+    const skillId = formData.get("skillId") as string;
+    const name = formData.get("name") as string;
+    
+    if (!skillId) {
+      return { 
+        success: false, 
+        error: "Missing skill ID",
+        details: "Skill ID is required for deletion"
+      };
+    }
+    
+    try {
+      await deleteSkill(skillId, user.id);
+      
+      return { 
+        success: true, 
+        type: "skill-deleted",
+        title: name || 'Skill',
+        company: "Skill"
+      };
+    } catch (error) {
+      console.error("Failed to delete skill:", error);
+      return { 
+        success: false, 
+        error: "Failed to delete skill",
+        details: error instanceof Error ? error.message : "Unknown error"
+      };
+    }
+  }
+  
+  if (action === "updateProfile") {
+    console.log("🚀 Profile update action triggered");
+    
+    const firstName = formData.get("firstName") as string;
+    const lastName = formData.get("lastName") as string;
+    const bio = formData.get("bio") as string;
+    const phone = formData.get("phone") as string;
+    const address = formData.get("address") as string;
+    const city = formData.get("city") as string;
+    const state = formData.get("state") as string;
+    const country = formData.get("country") as string;
+    const linkedinUrl = formData.get("linkedinUrl") as string;
+    const githubUrl = formData.get("githubUrl") as string;
+    const websiteUrl = formData.get("websiteUrl") as string;
+    const avatar = formData.get("avatar") as File;
+    
+    console.log("📝 Form data received:", {
+      firstName, lastName, bio, phone, address, city, state, country,
+      linkedinUrl, githubUrl, websiteUrl,
+      hasAvatar: !!avatar, avatarSize: avatar?.size, avatarName: avatar?.name
+    });
+    
+    console.log("🔍 Avatar object details:", {
+      avatar: avatar,
+      type: typeof avatar,
+      constructor: avatar?.constructor?.name,
+      isFile: avatar instanceof File,
+      hasSize: avatar && 'size' in avatar,
+      hasName: avatar && 'name' in avatar,
+      size: avatar?.size,
+      name: avatar?.name
+    });
+    
+    if (!firstName || !lastName) {
+      console.log("❌ Missing required fields");
+      return { 
+        success: false, 
+        error: "Missing required fields",
+        details: "First name and last name are required"
+      };
+    }
+    
+    try {
+      let avatarUrl = user.avatarUrl;
+      
+      // Handle avatar upload if provided
+      if (avatar && avatar.size > 0) {
+        try {
+          console.log("📤 Starting avatar upload...", { fileName: avatar.name, size: avatar.size });
+          
+          // Import and use blob upload
+          const { uploadUserAvatar } = await import("../lib/blob.server");
+          const result = await uploadUserAvatar(avatar, user.id);
+          avatarUrl = result.url;
+          
+          console.log("✅ Avatar upload successful:", { url: avatarUrl });
+        } catch (error) {
+          console.error("❌ Failed to upload avatar:", error);
+          return { 
+            success: false, 
+            error: "Failed to upload avatar",
+            details: error instanceof Error ? error.message : "Unknown error"
+          };
+        }
+      } else {
+        console.log("ℹ️ No avatar file provided, keeping existing:", user.avatarUrl);
+      }
+      
+      // Always update profile data (with or without avatar)
+      console.log("💾 Updating profile with avatarUrl:", avatarUrl);
+      
+      await updateUserProfile(user.id, {
+        firstName,
+        lastName,
+        bio: bio || undefined,
+        phone: phone || undefined,
+        address: address || undefined,
+        city: city || undefined,
+        state: state || undefined,
+        country: country || undefined,
+        linkedinUrl: linkedinUrl || undefined,
+        githubUrl: githubUrl || undefined,
+        websiteUrl: websiteUrl || undefined,
+        avatarUrl: avatarUrl || undefined,
+      });
+      
+      // Return success response instead of redirecting
+      if (avatar && avatar.size > 0) {
+        console.log("✅ Profile updated with avatar");
+        return { 
+          success: true, 
+          message: "Profile updated successfully",
+          type: "avatar-uploaded",
+          name: firstName
+        };
+      } else {
+        console.log("✅ Profile updated without avatar");
+        return { 
+          success: true, 
+          message: "Profile updated successfully",
+          type: "profile-updated",
+          name: firstName
+        };
+      }
+    } catch (error) {
+      console.error("Failed to update profile:", error);
+      return { 
+        success: false, 
+        error: "Failed to update profile",
+        details: error instanceof Error ? error.message : "Unknown error"
+      };
+    }
+  }
+  
+  console.log("❌ No matching action found for:", action);
+  throw new Response("Invalid action", { status: 400 });
+}
+
+import { useLoaderData, useSubmit, useActionData } from "react-router";
+import { useState, useEffect } from "react";
+import { experienceToasts, profileToasts, skillToasts } from "../lib/toast.client";
 
 export default function Dashboard() {
-  const { user, portfolioStats } = useLoaderData<typeof loader>();
+  const { user, portfolioStats, experiences, skills } = useLoaderData<typeof loader>();
+  const actionData = useActionData<typeof action>();
+  const submit = useSubmit();
   
   // Form state management
+  const [showProfileForm, setShowProfileForm] = useState(false);
   const [showExperienceForm, setShowExperienceForm] = useState(false);
   const [showSkillsForm, setShowSkillsForm] = useState(false);
   const [showCustomSectionForm, setShowCustomSectionForm] = useState(false);
+  
+  // Edit and delete state
+  const [editingExperience, setEditingExperience] = useState<typeof experiences[0] | null>(null);
+  const [deletingExperience, setDeletingExperience] = useState<typeof experiences[0] | null>(null);
+  const [editingSkill, setEditingSkill] = useState<typeof skills[0] | null>(null);
+  const [deletingSkill, setDeletingSkill] = useState<typeof skills[0] | null>(null);
 
-  // Form handlers
-  const handleExperienceSubmit = (data: any) => {
-    console.log("Experience submitted:", data);
-    // TODO: Save to database
-    setShowExperienceForm(false);
-  };
+  // Old URL-based useEffect removed - now using direct state management
 
-  const handleSkillsSubmit = (data: any) => {
-    console.log("Skills submitted:", data);
-    // TODO: Save to database
-    setShowSkillsForm(false);
-  };
-
-  const handleCustomSectionSubmit = (data: any) => {
-    console.log("Custom section submitted:", data);
-    // TODO: Save to database
-    setShowCustomSectionForm(false);
-  };
+  // Handle action responses (success/error) and close modals
+  useEffect(() => {
+    if (actionData) {
+      console.log("🎯 Action response received:", actionData);
+      
+      if (actionData.success) {
+        // Close appropriate modal based on action type
+        if (actionData.type === "profile-updated" || actionData.type === "avatar-uploaded") {
+          setShowProfileForm(false);
+          
+          // Show appropriate toast
+          if (actionData.type === "avatar-uploaded") {
+            profileToasts.avatarUploaded();
+          } else {
+            profileToasts.updated();
+          }
+        } else if (actionData.type?.includes("experience")) {
+          setShowExperienceForm(false);
+          setEditingExperience(null);
+          
+          // Show appropriate toast
+          if (actionData.type === "experience-created") {
+            experienceToasts.created(actionData.title || "Experience", actionData.company || "Company");
+          } else if (actionData.type === "experience-updated") {
+            experienceToasts.updated(actionData.title || "Experience", actionData.company || "Company");
+          } else if (actionData.type === "experience-deleted") {
+            experienceToasts.deleted(actionData.title || "Experience", actionData.company || "Company");
+          }
+        } else if (actionData.type?.includes("skill")) {
+          setShowSkillsForm(false);
+          setEditingSkill(null);
+          
+          // Show appropriate toast
+          if (actionData.type === "skill-created") {
+            skillToasts.created(actionData.title || "Skill");
+          } else if (actionData.type === "skill-updated") {
+            skillToasts.updated(actionData.title || "Skill");
+          } else if (actionData.type === "skill-deleted") {
+            skillToasts.deleted(actionData.title || "Skill");
+          }
+        }
+        
+        // Trigger data refresh by reloading the page for all successful actions
+        window.location.reload();
+      } else {
+        // Handle errors
+        console.error("❌ Action failed:", actionData);
+        console.log("🔍 Error details:", {
+          error: actionData.error,
+          includesSkill: actionData.error?.includes("skill"),
+          includesExperience: actionData.error?.includes("experience"),
+          includesAvatar: actionData.error?.includes("avatar")
+        });
+        
+        // Show appropriate error toast based on error message
+        if (actionData.error?.includes("avatar")) {
+          profileToasts.avatarUploadError();
+        } else if (actionData.error?.includes("experience")) {
+          experienceToasts.createError();
+        } else if (actionData.error?.includes("skill")) {
+          skillToasts.createError();
+        } else {
+          console.log("⚠️ Falling back to profile error toast");
+          profileToasts.updateError();
+        }
+        
+        // Close modal on error too - this gives immediate feedback
+        if (actionData.error?.includes("skill")) {
+          console.log("🔒 Closing skills modal on error");
+          setShowSkillsForm(false);
+          setEditingSkill(null);
+        } else if (actionData.error?.includes("experience")) {
+          console.log("🔒 Closing experience modal on error");
+          setShowExperienceForm(false);
+          setEditingExperience(null);
+        } else if (actionData.error?.includes("profile")) {
+          console.log("🔒 Closing profile modal on error");
+          setShowProfileForm(false);
+        }
+      }
+    }
+  }, [actionData]);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -90,7 +578,11 @@ export default function Dashboard() {
                     <Eye className="w-4 h-4 mr-2" />
                     Preview
                   </Button>
-                  <Button variant="outline" size="sm">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setShowProfileForm(true)}
+                  >
                     <Edit className="w-4 h-4 mr-2" />
                     Edit
                   </Button>
@@ -98,10 +590,29 @@ export default function Dashboard() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center gap-4">
-                  <div className="w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center">
-                    <span className="text-2xl font-medium text-gray-600">
-                      {user.firstName[0]}{user.lastName[0]}
-                    </span>
+                  <div className="w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
+                    {user.avatarUrl ? (
+                      <>
+                        <img 
+                          src={user.avatarUrl} 
+                          alt={`${user.firstName} ${user.lastName}`}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            console.log("❌ Image failed to load:", user.avatarUrl);
+                            e.currentTarget.style.display = 'none';
+                          }}
+                          onLoad={() => console.log("✅ Image loaded successfully:", user.avatarUrl)}
+                        />
+                        {/* Debug info */}
+                        <div className="hidden">
+                          Avatar URL: {user.avatarUrl}
+                        </div>
+                      </>
+                    ) : (
+                      <span className="text-2xl font-medium text-gray-600">
+                        {user.firstName[0]}{user.lastName[0]}
+                      </span>
+                    )}
                   </div>
                   <div className="flex-1">
                     <h3 className="text-lg font-medium">{user.firstName} {user.lastName}</h3>
@@ -125,18 +636,22 @@ export default function Dashboard() {
                   </div>
                   {user.linkedinUrl && (
                     <div>
-                      <label className="text-sm font-medium text-gray-700">LinkedIn</label>
                       <a href={user.linkedinUrl} target="_blank" rel="noopener noreferrer" 
-                         className="text-blue-600 hover:text-blue-800">
+                         className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 transition-colors">
+                        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                        </svg>
                         View Profile
                       </a>
                     </div>
                   )}
                   {user.githubUrl && (
                     <div>
-                      <label className="text-sm font-medium text-gray-700">GitHub</label>
                       <a href={user.githubUrl} target="_blank" rel="noopener noreferrer" 
-                         className="text-blue-600 hover:text-blue-800">
+                         className="inline-flex items-center gap-2 text-gray-700 hover:text-gray-900 transition-colors">
+                        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                        </svg>
                         View Profile
                       </a>
                     </div>
@@ -171,13 +686,10 @@ export default function Dashboard() {
                           </div>
                           <div className="text-left">
                             <p className="font-medium text-gray-700 group-hover:text-blue-700">
-                              {portfolioStats.experiences === 0 ? 'Add Your First Experience' : 'Add Another Experience'}
+                              Add Your First Experience
                             </p>
                             <p className="text-sm text-gray-500 group-hover:text-blue-600">
-                              {portfolioStats.experiences === 0 
-                                ? 'Click to create your first work experience' 
-                                : 'Click to add another work experience'
-                              }
+                              Click to create your first work experience
                             </p>
                           </div>
                         </div>
@@ -186,8 +698,68 @@ export default function Dashboard() {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {/* TODO: Render actual experiences from database */}
-                    <p className="text-gray-600">Experiences will be displayed here</p>
+                    {experiences.map((experience) => (
+                      <div key={experience.id} className="border rounded-lg p-4 bg-white">
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <h3 className="font-medium text-gray-900">{experience.title}</h3>
+                            <p className="text-gray-600">{experience.companyName}</p>
+                            {experience.location && (
+                              <p className="text-sm text-gray-500">{experience.location}</p>
+                            )}
+                            <p className="text-sm text-gray-500">
+                              {new Date(experience.startDate).toLocaleDateString()} - 
+                              {experience.isCurrent ? 'Present' : experience.endDate ? new Date(experience.endDate).toLocaleDateString() : 'No end date'}
+                            </p>
+                            <div className="mt-2">
+                              <RichTextDisplay content={experience.description} className="text-sm" />
+                            </div>
+                          </div>
+                          <div className="flex gap-2 ml-4">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => {
+                                setEditingExperience(experience);
+                                setShowExperienceForm(true);
+                              }}
+                            >
+                              Edit
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="text-red-600"
+                              onClick={() => setDeletingExperience(experience)}
+                            >
+                              Delete
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    
+                    {/* Ghost Add Card - Always shown when there are experiences */}
+                    <div 
+                      onClick={() => setShowExperienceForm(true)}
+                      className="group cursor-pointer"
+                    >
+                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 transition-all duration-200 hover:border-blue-400 hover:bg-blue-50">
+                        <div className="flex items-center gap-3 justify-center">
+                          <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center group-hover:bg-blue-100 transition-colors flex-shrink-0">
+                            <Plus className="w-5 h-5 text-gray-400 group-hover:text-blue-500" />
+                          </div>
+                          <div className="text-left">
+                            <p className="font-medium text-gray-700 group-hover:text-blue-700">
+                              Add Another Experience
+                            </p>
+                            <p className="text-sm text-gray-500 group-hover:text-blue-600">
+                              Click to add another work experience
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 )}
               </CardContent>
@@ -234,8 +806,77 @@ export default function Dashboard() {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {/* TODO: Render actual skills from database */}
-                    <p className="text-gray-600">Skills will be displayed here</p>
+                    {skills.map((skill) => (
+                      <div key={skill.id} className="border rounded-lg p-4 bg-white">
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <h3 className="font-medium text-gray-900">{skill.name}</h3>
+                            <div className="flex gap-4 text-sm text-gray-600 mt-1">
+                              {skill.category && (
+                                <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                                  {skill.category}
+                                </span>
+                              )}
+                              {skill.proficiency && (
+                                <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full">
+                                  Level {skill.proficiency}/5
+                                </span>
+                              )}
+                              {skill.yearsOfExperience && (
+                                <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded-full">
+                                  {skill.yearsOfExperience} years
+                                </span>
+                              )}
+                            </div>
+                            <div className="mt-2">
+                              <RichTextDisplay content={skill.description} className="text-sm" />
+                            </div>
+                          </div>
+                          <div className="flex gap-2 ml-4">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => {
+                                setEditingSkill(skill);
+                                setShowSkillsForm(true);
+                              }}
+                            >
+                              Edit
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="text-red-600"
+                              onClick={() => setDeletingSkill(skill)}
+                            >
+                              Delete
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    
+                    {/* Ghost Add Card - Always shown when there are skills */}
+                    <div 
+                      onClick={() => setShowSkillsForm(true)}
+                      className="group cursor-pointer"
+                    >
+                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 transition-all duration-200 hover:border-blue-400 hover:bg-blue-50">
+                        <div className="flex items-center gap-3 justify-center">
+                          <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center group-hover:bg-blue-100 transition-colors flex-shrink-0">
+                            <Plus className="w-5 h-5 text-gray-400 group-hover:text-blue-500" />
+                          </div>
+                          <div className="text-left">
+                            <p className="font-medium text-gray-700 group-hover:text-blue-700">
+                              Add Another Skill
+                            </p>
+                            <p className="text-sm text-gray-500 group-hover:text-blue-600">
+                              Click to add another skill
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 )}
               </CardContent>
@@ -296,6 +937,25 @@ export default function Dashboard() {
       </div>
 
       {/* Form Overlays */}
+      {showProfileForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 overflow-y-auto">
+          <div className="min-h-full flex items-center justify-center p-4">
+            <div className="relative w-full max-w-4xl my-8">
+              <button
+                onClick={() => setShowProfileForm(false)}
+                className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 z-10"
+              >
+                <X className="w-6 h-6" />
+              </button>
+              <ProfileForm
+                onClose={() => setShowProfileForm(false)}
+                user={user}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
       {showExperienceForm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 overflow-y-auto">
           <div className="min-h-full flex items-center justify-center p-4">
@@ -306,11 +966,23 @@ export default function Dashboard() {
               >
                 <X className="w-6 h-6" />
               </button>
-              <ExperienceForm
-                onSubmit={handleExperienceSubmit}
-                onCancel={() => setShowExperienceForm(false)}
-                mode="add"
-              />
+                          <ExperienceForm
+              onClose={() => {
+                setShowExperienceForm(false);
+                setEditingExperience(null);
+              }}
+              mode={editingExperience ? "edit" : "add"}
+              initialData={editingExperience ? {
+                id: editingExperience.id,
+                title: editingExperience.title,
+                companyName: editingExperience.companyName,
+                description: editingExperience.description,
+                startDate: editingExperience.startDate.toISOString().split('T')[0],
+                endDate: editingExperience.endDate ? editingExperience.endDate.toISOString().split('T')[0] : '',
+                isCurrent: editingExperience.isCurrent,
+                location: editingExperience.location || '',
+              } : undefined}
+            />
             </div>
           </div>
         </div>
@@ -326,11 +998,21 @@ export default function Dashboard() {
               >
                 <X className="w-6 h-6" />
               </button>
-              <SkillsForm
-                onSubmit={handleSkillsSubmit}
-                onCancel={() => setShowSkillsForm(false)}
-                mode="add"
-              />
+                          <SkillsForm
+              onClose={() => {
+                setShowSkillsForm(false);
+                setEditingSkill(null);
+              }}
+              mode={editingSkill ? "edit" : "add"}
+              initialData={editingSkill ? {
+                id: editingSkill.id,
+                name: editingSkill.name,
+                description: editingSkill.description,
+                category: editingSkill.category || '',
+                proficiency: editingSkill.proficiency || undefined,
+                yearsOfExperience: editingSkill.yearsOfExperience || undefined,
+              } : undefined}
+            />
             </div>
           </div>
         </div>
@@ -346,15 +1028,55 @@ export default function Dashboard() {
               >
                 <X className="w-6 h-6" />
               </button>
-              <CustomSectionForm
-                onSubmit={handleCustomSectionSubmit}
-                onCancel={() => setShowCustomSectionForm(false)}
-                mode="add"
-              />
+                          <CustomSectionForm
+              onClose={() => setShowCustomSectionForm(false)}
+              mode="add"
+            />
             </div>
           </div>
         </div>
       )}
+      
+      {/* Delete Confirmation Modal for Experiences */}
+      <ConfirmationModal
+        isOpen={!!deletingExperience}
+        onClose={() => setDeletingExperience(null)}
+        onConfirm={() => {
+          if (deletingExperience) {
+            const formData = new FormData();
+            formData.append("_action", "deleteExperience");
+            formData.append("experienceId", deletingExperience.id);
+            formData.append("title", deletingExperience.title);
+            formData.append("companyName", deletingExperience.companyName);
+            submit(formData, { method: "post" });
+          }
+        }}
+        title="Delete Experience"
+        message={`Are you sure you want to delete "${deletingExperience?.title}" at ${deletingExperience?.companyName}? This action cannot be undone.`}
+        confirmText="Yes, Delete"
+        cancelText="Cancel"
+        variant="danger"
+      />
+      
+      {/* Delete Confirmation Modal for Skills */}
+      <ConfirmationModal
+        isOpen={!!deletingSkill}
+        onClose={() => setDeletingSkill(null)}
+        onConfirm={() => {
+          if (deletingSkill) {
+            const formData = new FormData();
+            formData.append("_action", "deleteSkill");
+            formData.append("skillId", deletingSkill.id);
+            formData.append("name", deletingSkill.name);
+            submit(formData, { method: "post" });
+          }
+        }}
+        title="Delete Skill"
+        message={`Are you sure you want to delete "${deletingSkill?.name}"? This action cannot be undone.`}
+        confirmText="Yes, Delete"
+        cancelText="Cancel"
+        variant="danger"
+      />
     </div>
   );
 }

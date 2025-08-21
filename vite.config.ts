@@ -12,7 +12,11 @@ export default defineConfig({
       'Cache-Control': 'no-cache, no-store, must-revalidate',
     },
   },
-
+  resolve: {
+    alias: {
+      '@prisma/client': './generated/prisma/index.js'
+    }
+  },
   // Force Vite to not cache static assets
   build: {
     rollupOptions: {

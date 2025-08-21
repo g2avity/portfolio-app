@@ -164,6 +164,17 @@ export async function findUserById(id: string): Promise<User | null> {
       email: true,
       firstName: true,
       lastName: true,
+      birthDate: true,
+      phone: true,
+      address: true,
+      city: true,
+      state: true,
+      country: true,
+      bio: true,
+      linkedinUrl: true,
+      githubUrl: true,
+      websiteUrl: true,
+      avatarUrl: true,
       isPublic: true,
       portfolioSlug: true,
       createdAt: true,
@@ -185,6 +196,17 @@ export async function findUserBySlug(slug: string): Promise<User | null> {
       email: true,
       firstName: true,
       lastName: true,
+      birthDate: true,
+      phone: true,
+      address: true,
+      city: true,
+      state: true,
+      country: true,
+      bio: true,
+      linkedinUrl: true,
+      githubUrl: true,
+      websiteUrl: true,
+      avatarUrl: true,
       isPublic: true,
       portfolioSlug: true,
       createdAt: true,
@@ -227,6 +249,17 @@ export async function verifyUserCredentials(email: string, password: string): Pr
     email: user.email,
     firstName: user.firstName,
     lastName: user.lastName,
+    birthDate: user.birthDate,
+    phone: user.phone,
+    address: user.address,
+    city: user.city,
+    state: user.state,
+    country: user.country,
+    bio: user.bio,
+    linkedinUrl: user.linkedinUrl,
+    githubUrl: user.githubUrl,
+    websiteUrl: user.websiteUrl,
+    avatarUrl: user.avatarUrl,
     isPublic: user.isPublic,
     portfolioSlug: user.portfolioSlug,
     createdAt: user.createdAt,
@@ -260,6 +293,17 @@ export async function findOrCreateUserFromOAuth(params: {
           email: true,
           firstName: true,
           lastName: true,
+          birthDate: true,
+          phone: true,
+          address: true,
+          city: true,
+          state: true,
+          country: true,
+          bio: true,
+          linkedinUrl: true,
+          githubUrl: true,
+          websiteUrl: true,
+          avatarUrl: true,
           isPublic: true,
           portfolioSlug: true,
           createdAt: true,
@@ -282,6 +326,17 @@ export async function findOrCreateUserFromOAuth(params: {
       email: true,
       firstName: true,
       lastName: true,
+      birthDate: true,
+      phone: true,
+      address: true,
+      city: true,
+      state: true,
+      country: true,
+      bio: true,
+      linkedinUrl: true,
+      githubUrl: true,
+      websiteUrl: true,
+      avatarUrl: true,
       isPublic: true,
       portfolioSlug: true,
       createdAt: true,
@@ -326,6 +381,17 @@ export async function findOrCreateUserFromOAuth(params: {
       email: true,
       firstName: true,
       lastName: true,
+      birthDate: true,
+      phone: true,
+      address: true,
+      city: true,
+      state: true,
+      country: true,
+      bio: true,
+      linkedinUrl: true,
+      githubUrl: true,
+      websiteUrl: true,
+      avatarUrl: true,
       isPublic: true,
       portfolioSlug: true,
       createdAt: true,
@@ -367,6 +433,350 @@ export function setupGracefulShutdown() {
       process.exit(0);
     });
   });
+}
+
+// Experience-related functions
+export interface CreateExperienceData {
+  title: string;
+  companyName: string;
+  description: string;
+  startDate: Date;
+  endDate?: Date;
+  isCurrent: boolean;
+  location?: string;
+  userId: string;
+}
+
+export interface Experience {
+  id: string;
+  title: string;
+  companyName: string;
+  description: string;
+  startDate: Date;
+  endDate: Date | null;
+  isCurrent: boolean;
+  location: string | null;
+  userId: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Create new experience
+export async function createExperience(data: CreateExperienceData): Promise<Experience> {
+  const client = await prisma;
+  
+  const experience = await client.experience.create({
+    data: {
+      title: data.title,
+      companyName: data.companyName,
+      description: data.description,
+      startDate: data.startDate,
+      endDate: data.isCurrent ? null : data.endDate,
+      isCurrent: data.isCurrent,
+      location: data.location || null,
+      userId: data.userId,
+    },
+    select: {
+      id: true,
+      title: true,
+      companyName: true,
+      description: true,
+      startDate: true,
+      endDate: true,
+      isCurrent: true,
+      location: true,
+      userId: true,
+      createdAt: true,
+      updatedAt: true,
+    }
+  });
+  
+  return experience;
+}
+
+// Get experiences for a user
+export async function getUserExperiences(userId: string): Promise<Experience[]> {
+  const client = await prisma;
+  
+  const experiences = await client.experience.findMany({
+    where: { userId },
+    orderBy: [
+      { isCurrent: 'desc' }, // Current positions first
+      { endDate: 'desc' },   // Then by end date (most recent first)
+      { startDate: 'desc' }  // Finally by start date
+    ],
+    select: {
+      id: true,
+      title: true,
+      companyName: true,
+      description: true,
+      startDate: true,
+      endDate: true,
+      isCurrent: true,
+      location: true,
+      userId: true,
+      createdAt: true,
+      updatedAt: true,
+    }
+  });
+  
+  return experiences;
+}
+
+// Get experience count for a user
+export async function getUserExperienceCount(userId: string): Promise<number> {
+  const client = await prisma;
+  
+  const count = await client.experience.count({
+    where: { userId }
+  });
+  
+  return count;
+}
+
+// Update existing experience
+export async function updateExperience(data: CreateExperienceData & { id: string }): Promise<Experience> {
+  const client = await prisma;
+  
+  const experience = await client.experience.update({
+    where: { id: data.id },
+    data: {
+      title: data.title,
+      companyName: data.companyName,
+      description: data.description,
+      startDate: data.startDate,
+      endDate: data.isCurrent ? null : data.endDate,
+      isCurrent: data.isCurrent,
+      location: data.location || null,
+    },
+    select: {
+      id: true,
+      title: true,
+      companyName: true,
+      description: true,
+      startDate: true,
+      endDate: true,
+      isCurrent: true,
+      location: true,
+      userId: true,
+      createdAt: true,
+      updatedAt: true,
+    }
+  });
+  
+  return experience;
+}
+
+// Delete experience
+export async function deleteExperience(experienceId: string, userId: string): Promise<void> {
+  const client = await prisma;
+  
+  // Verify ownership before deletion
+  const experience = await client.experience.findUnique({
+    where: { id: experienceId },
+    select: { userId: true }
+  });
+  
+  if (!experience || experience.userId !== userId) {
+    throw new Error("Experience not found or access denied");
+  }
+  
+  await client.experience.delete({
+    where: { id: experienceId }
+  });
+}
+
+// Skills-related functions
+export interface CreateSkillData {
+  name: string;
+  description: string;
+  category?: string;
+  proficiency?: number;
+  yearsOfExperience?: number;
+  userId: string;
+}
+
+export interface Skill {
+  id: string;
+  name: string;
+  description: string;
+  category: string | null;
+  proficiency: number | null;
+  yearsOfExperience: number | null;
+  userId: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Create new skill
+export async function createSkill(data: CreateSkillData): Promise<Skill> {
+  const client = await prisma;
+  
+  const skill = await client.skill.create({
+    data: {
+      name: data.name,
+      description: data.description,
+      category: data.category || null,
+      proficiency: data.proficiency || null,
+      yearsOfExperience: data.yearsOfExperience || null,
+      userId: data.userId,
+    },
+    select: {
+      id: true,
+      name: true,
+      description: true,
+      category: true,
+      proficiency: true,
+      yearsOfExperience: true,
+      userId: true,
+      createdAt: true,
+      updatedAt: true,
+    }
+  });
+  
+  return skill;
+}
+
+// Get skills for a user
+export async function getUserSkills(userId: string): Promise<Skill[]> {
+  const client = await prisma;
+  
+  const skills = await client.skill.findMany({
+    where: { userId },
+    orderBy: [
+      { category: 'asc' },
+      { name: 'asc' }
+    ],
+    select: {
+      id: true,
+      name: true,
+      description: true,
+      category: true,
+      proficiency: true,
+      yearsOfExperience: true,
+      userId: true,
+      createdAt: true,
+      updatedAt: true,
+    }
+  });
+  
+  return skills;
+}
+
+// Get skill count for a user
+export async function getUserSkillCount(userId: string): Promise<number> {
+  const client = await prisma;
+  
+  const count = await client.skill.count({
+    where: { userId }
+  });
+  
+  return count;
+}
+
+// Update existing skill
+export async function updateSkill(data: CreateSkillData & { id: string }): Promise<Skill> {
+  const client = await prisma;
+  
+  const skill = await client.skill.update({
+    where: { id: data.id },
+    data: {
+      name: data.name,
+      description: data.description,
+      category: data.category,
+      proficiency: data.proficiency,
+      yearsOfExperience: data.yearsOfExperience,
+    },
+    select: {
+      id: true,
+      name: true,
+      description: true,
+      category: true,
+      proficiency: true,
+      yearsOfExperience: true,
+      userId: true,
+      createdAt: true,
+      updatedAt: true,
+    }
+  });
+  
+  return skill;
+}
+
+// Delete skill
+export async function deleteSkill(skillId: string, userId: string): Promise<void> {
+  const client = await prisma;
+  
+  // Verify ownership before deletion
+  const skill = await client.skill.findUnique({
+    where: { id: skillId },
+    select: { userId: true }
+  });
+  
+  if (!skill || skill.userId !== userId) {
+    throw new Error("Skill not found or access denied");
+  }
+  
+  await client.skill.delete({
+    where: { id: skillId }
+  });
+}
+
+// Update user profile
+export async function updateUserProfile(
+  userId: string,
+  data: {
+    firstName?: string;
+    lastName?: string;
+    bio?: string;
+    phone?: string;
+    address?: string;
+    city?: string;
+    state?: string;
+    country?: string;
+    linkedinUrl?: string;
+    githubUrl?: string;
+    websiteUrl?: string;
+    avatarUrl?: string;
+  }
+): Promise<User> {
+  const client = await prisma;
+  
+  try {
+    const updatedUser = await client.user.update({
+      where: { id: userId },
+      data,
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        birthDate: true,
+        phone: true,
+        address: true,
+        city: true,
+        state: true,
+        country: true,
+        bio: true,
+        linkedinUrl: true,
+        githubUrl: true,
+        websiteUrl: true,
+        avatarUrl: true,
+        portfolioSlug: true,
+        isPublic: true,
+        createdAt: true,
+        updatedAt: true,
+        accounts: true,
+        sessions: true,
+      },
+    });
+    
+    return updatedUser;
+  } catch (error) {
+    console.error('Error updating user profile:', error);
+    throw new Error('Failed to update user profile');
+  }
 }
 
 // Auto-setup graceful shutdown
