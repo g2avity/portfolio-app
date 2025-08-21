@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Form } from "react-router";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Input } from "./ui/input";
@@ -21,8 +22,7 @@ interface CustomSectionFormData {
 }
 
 interface CustomSectionFormProps {
-  onSubmit: (data: CustomSectionFormData) => void;
-  onCancel: () => void;
+  onClose: () => void; // Changed from onSubmit/onCancel to onClose
   initialData?: Partial<CustomSectionFormData>;
   mode: "add" | "edit";
   templates?: {
@@ -67,7 +67,7 @@ const DEFAULT_TEMPLATES = [
   }
 ];
 
-export function CustomSectionForm({ onSubmit, onCancel, initialData, mode, templates = DEFAULT_TEMPLATES }: CustomSectionFormProps) {
+export function CustomSectionForm({ onClose, initialData, mode, templates = DEFAULT_TEMPLATES }: CustomSectionFormProps) {
   const [formData, setFormData] = useState<CustomSectionFormData>({
     title: initialData?.title || "",
     description: initialData?.description || "",
@@ -94,13 +94,7 @@ export function CustomSectionForm({ onSubmit, onCancel, initialData, mode, templ
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (validateForm()) {
-      onSubmit(formData);
-    }
-  };
+  // No custom handleSubmit needed - let React Router handle form submission
 
   const handleInputChange = (field: keyof CustomSectionFormData, value: string | CustomField[]) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -159,7 +153,9 @@ export function CustomSectionForm({ onSubmit, onCancel, initialData, mode, templ
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <Form method="post" className="space-y-6">
+          {/* Hidden action field */}
+          <input type="hidden" name="_action" value="createCustomSection" />
           {/* Section Title */}
           <div className="space-y-2">
             <Label htmlFor="title" className="flex items-center gap-2">
@@ -168,8 +164,8 @@ export function CustomSectionForm({ onSubmit, onCancel, initialData, mode, templ
             </Label>
             <Input
               id="title"
-              value={formData.title}
-              onChange={(e) => handleInputChange("title", e.target.value)}
+              name="title"
+              defaultValue={formData.title}
               placeholder="e.g., STAR Memos, Project Showcase, Speaking Engagements"
               className={errors.title ? "border-red-500" : ""}
             />
@@ -186,8 +182,8 @@ export function CustomSectionForm({ onSubmit, onCancel, initialData, mode, templ
             </Label>
             <Textarea
               id="description"
-              value={formData.description}
-              onChange={(e) => handleInputChange("description", e.target.value)}
+              name="description"
+              defaultValue={formData.description}
               placeholder="Describe what this section will contain..."
               rows={3}
               className={errors.description ? "border-red-500" : ""}
@@ -334,7 +330,7 @@ export function CustomSectionForm({ onSubmit, onCancel, initialData, mode, templ
               {mode === "add" ? "Create Section" : "Save Changes"}
             </Button>
           </div>
-        </form>
+        </Form>
       </CardContent>
     </Card>
   );

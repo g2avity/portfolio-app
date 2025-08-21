@@ -1,5 +1,4 @@
 import { put, del, list } from '@vercel/blob';
-import { writeAsyncIterableToFile } from '@vercel/blob';
 import type { PutBlobResult } from '@vercel/blob';
 
 // Upload a file to Vercel Blob
@@ -49,24 +48,68 @@ export async function listUserFiles(userId: string): Promise<string[]> {
 
 // Upload user avatar with organized naming
 export async function uploadUserAvatar(
-  file: File,
+  file: File | Blob,
   userId: string
 ): Promise<PutBlobResult> {
   try {
+    console.log('🚀 uploadUserAvatar called with:', {
+      fileName: file.name,
+      fileSize: file.size,
+      fileType: file.type,
+      userId: userId
+    });
+    
+    console.log('🔍 File object details:', {
+      constructor: file.constructor.name,
+      isFile: file instanceof File,
+      hasName: 'name' in file,
+      hasSize: 'size' in file,
+      hasType: 'type' in file
+    });
+
+    // Validate environment variable
+    if (!process.env.BLOB_READ_WRITE_TOKEN) {
+      console.error('❌ BLOB_READ_WRITE_TOKEN environment variable is missing!');
+      throw new Error('Blob storage not configured - missing BLOB_READ_WRITE_TOKEN');
+    }
+
     // Create organized file path: users/{userId}/avatars/{timestamp}-{filename}
     const timestamp = Date.now();
     const fileExtension = file.name.split('.').pop();
     const fileName = `users/${userId}/avatars/${timestamp}.${fileExtension}`;
     
+    console.log('📁 Attempting to upload to path:', fileName);
+    console.log('🔑 BLOB_READ_WRITE_TOKEN exists:', !!process.env.BLOB_READ_WRITE_TOKEN);
+    console.log('📤 Calling Vercel Blob put() function...');
+    
+    // Use the official Vercel Blob approach - File objects are supported
     const result = await put(fileName, file, {
       access: 'public',
       addRandomSuffix: false, // We're already adding timestamp for uniqueness
     });
     
+    console.log('✅ Blob upload successful:', {
+      url: result.url,
+      pathname: result.pathname,
+      size: result.size
+    });
+    
+    console.log('🔍 Full result object:', result);
+    
     return result;
   } catch (error) {
-    console.error('Error uploading user avatar:', error);
-    throw new Error('Failed to upload avatar');
+    console.error('❌ Error uploading user avatar:', error);
+    
+    // Log more details about the error
+    if (error instanceof Error) {
+      console.error('Error details:', {
+        message: error.message,
+        name: error.name,
+        stack: error.stack
+      });
+    }
+    
+    throw new Error(`Failed to upload avatar: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
 
@@ -108,4 +151,28 @@ export function validateImageFile(file: File): { isValid: boolean; error?: strin
   }
   
   return { isValid: true };
+}
+
+// Test blob connection
+export async function testBlobConnection(): Promise<boolean> {
+  try {
+    console.log('🧪 Testing blob connection...');
+    
+    if (!process.env.BLOB_READ_WRITE_TOKEN) {
+      console.error('❌ BLOB_READ_WRITE_TOKEN not found in environment');
+      return false;
+    }
+    
+    console.log('✅ BLOB_READ_WRITE_TOKEN found in environment');
+    console.log('🔑 Token starts with:', process.env.BLOB_READ_WRITE_TOKEN.substring(0, 20) + '...');
+    
+    // Try to list blobs to test connection
+    const { blobs } = await list({ limit: 1 });
+    console.log('✅ Blob connection successful, found', blobs.length, 'existing blobs');
+    
+    return true;
+  } catch (error) {
+    console.error('❌ Blob connection test failed:', error);
+    return false;
+  }
 }

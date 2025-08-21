@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { Form } from "react-router";
 import { Button } from "./ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
 import { Label } from "./ui/label";
-import { Calendar, MapPin, Building2, Briefcase } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Briefcase, Building2, MapPin, Calendar } from "lucide-react";
 
 interface ExperienceFormData {
   title: string;
@@ -17,13 +18,12 @@ interface ExperienceFormData {
 }
 
 interface ExperienceFormProps {
-  onSubmit: (data: ExperienceFormData) => void;
-  onCancel: () => void;
-  initialData?: Partial<ExperienceFormData>;
   mode: "add" | "edit";
+  initialData?: ExperienceFormData & { id?: string };
+  onClose: () => void; // Changed from onSubmit/onCancel to onClose
 }
 
-export function ExperienceForm({ onSubmit, onCancel, initialData, mode }: ExperienceFormProps) {
+export function ExperienceForm({ mode, initialData, onClose }: ExperienceFormProps) {
   const [formData, setFormData] = useState<ExperienceFormData>({
     title: initialData?.title || "",
     companyName: initialData?.companyName || "",
@@ -35,6 +35,13 @@ export function ExperienceForm({ onSubmit, onCancel, initialData, mode }: Experi
   });
 
   const [errors, setErrors] = useState<Partial<ExperienceFormData>>({});
+
+  // Update form data when initialData changes
+  useEffect(() => {
+    if (initialData) {
+      setFormData(initialData);
+    }
+  }, [initialData]);
 
   const validateForm = (): boolean => {
     const newErrors: Partial<ExperienceFormData> = {};
@@ -51,29 +58,9 @@ export function ExperienceForm({ onSubmit, onCancel, initialData, mode }: Experi
     if (!formData.startDate) {
       newErrors.startDate = "Start date is required";
     }
-    if (!formData.isCurrent && !formData.endDate) {
-      newErrors.endDate = "End date is required for past positions";
-    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (validateForm()) {
-      onSubmit(formData);
-    }
-  };
-
-  const handleInputChange = (field: keyof ExperienceFormData, value: string | boolean) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    
-    // Clear error when user starts typing
-    if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: undefined }));
-    }
   };
 
   return (
@@ -85,7 +72,19 @@ export function ExperienceForm({ onSubmit, onCancel, initialData, mode }: Experi
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <Form method="post" className="space-y-6">
+          {/* Hidden action field */}
+          <input 
+            type="hidden" 
+            name="_action" 
+            value={mode === "edit" ? "updateExperience" : "createExperience"} 
+          />
+          
+          {/* Hidden experience ID for edit mode */}
+          {mode === "edit" && initialData?.id && (
+            <input type="hidden" name="experienceId" value={initialData.id} />
+          )}
+
           {/* Job Title */}
           <div className="space-y-2">
             <Label htmlFor="title" className="flex items-center gap-2">
@@ -94,8 +93,8 @@ export function ExperienceForm({ onSubmit, onCancel, initialData, mode }: Experi
             </Label>
             <Input
               id="title"
-              value={formData.title}
-              onChange={(e) => handleInputChange("title", e.target.value)}
+              name="title"
+              defaultValue={formData.title}
               placeholder="e.g., Senior Software Engineer"
               className={errors.title ? "border-red-500" : ""}
             />
@@ -112,8 +111,8 @@ export function ExperienceForm({ onSubmit, onCancel, initialData, mode }: Experi
             </Label>
             <Input
               id="companyName"
-              value={formData.companyName}
-              onChange={(e) => handleInputChange("companyName", e.target.value)}
+              name="companyName"
+              defaultValue={formData.companyName}
               placeholder="e.g., Google Inc."
               className={errors.companyName ? "border-red-500" : ""}
             />
@@ -130,8 +129,8 @@ export function ExperienceForm({ onSubmit, onCancel, initialData, mode }: Experi
             </Label>
             <Input
               id="location"
-              value={formData.location}
-              onChange={(e) => handleInputChange("location", e.target.value)}
+              name="location"
+              defaultValue={formData.location}
               placeholder="e.g., San Francisco, CA or Remote"
             />
           </div>
@@ -145,9 +144,9 @@ export function ExperienceForm({ onSubmit, onCancel, initialData, mode }: Experi
               </Label>
               <Input
                 id="startDate"
+                name="startDate"
                 type="date"
-                value={formData.startDate}
-                onChange={(e) => handleInputChange("startDate", e.target.value)}
+                defaultValue={formData.startDate}
                 className={errors.startDate ? "border-red-500" : ""}
               />
               {errors.startDate && (
@@ -162,9 +161,9 @@ export function ExperienceForm({ onSubmit, onCancel, initialData, mode }: Experi
               </Label>
               <Input
                 id="endDate"
+                name="endDate"
                 type="date"
-                value={formData.endDate}
-                onChange={(e) => handleInputChange("endDate", e.target.value)}
+                defaultValue={formData.endDate}
                 disabled={formData.isCurrent}
                 className={errors.endDate ? "border-red-500" : ""}
               />
@@ -178,9 +177,9 @@ export function ExperienceForm({ onSubmit, onCancel, initialData, mode }: Experi
           <div className="flex items-center space-x-2">
             <input
               id="isCurrent"
+              name="isCurrent"
               type="checkbox"
-              checked={formData.isCurrent}
-              onChange={(e) => handleInputChange("isCurrent", e.target.checked)}
+              defaultChecked={formData.isCurrent}
               className="rounded border-gray-300"
             />
             <Label htmlFor="isCurrent">This is my current position</Label>
@@ -194,9 +193,9 @@ export function ExperienceForm({ onSubmit, onCancel, initialData, mode }: Experi
             </Label>
             <Textarea
               id="description"
-              value={formData.description}
-              onChange={(e) => handleInputChange("description", e.target.value)}
-              placeholder="Describe your role, responsibilities, and achievements..."
+              name="description"
+              defaultValue={formData.description}
+              placeholder="Describe your role, responsibilities, and achievements...&#10;&#10;You can use:&#10;• Bullet points&#10;- Or dashes&#10;1. Numbered lists&#10;&#10;Responsibilities:&#10;• Led development of...&#10;• Managed team of...&#10;&#10;Achievements:&#10;• Increased performance by 50%&#10;• Reduced costs by $100k"
               rows={6}
               className={errors.description ? "border-red-500" : ""}
             />
@@ -207,14 +206,14 @@ export function ExperienceForm({ onSubmit, onCancel, initialData, mode }: Experi
 
           {/* Form Actions */}
           <div className="flex justify-end gap-3 pt-4">
-            <Button type="button" variant="outline" onClick={onCancel}>
+            <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
             <Button type="submit">
               {mode === "add" ? "Add Experience" : "Save Changes"}
             </Button>
           </div>
-        </form>
+        </Form>
       </CardContent>
     </Card>
   );

@@ -11,6 +11,7 @@ import type { LoaderFunctionArgs } from "react-router";
 import { getUserFromSession } from "./lib/session.server";
 import { Nav } from "./components/nav";
 import { ErrorBoundary as AppErrorBoundary } from "./components/error-boundary";
+import { Toaster } from "./components/ui/sonner";
 import type { Route } from "./+types/root";
 import "./app.css";
 
@@ -57,6 +58,7 @@ export default function App() {
     <>
       <Nav user={user} />
       <Outlet />
+      <Toaster />
     </>
   );
 }
