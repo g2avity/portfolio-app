@@ -1,17 +1,10 @@
 import { Button } from "./ui/button";
 import { Card, CardContent } from "./ui/card";
 import { Link } from "react-router";
+import type { User } from "../lib/db.server";
 
 interface NavProps {
-  user?: {
-    id: string;
-    username: string;
-    firstName: string;
-    lastName: string;
-    email: string;
-    isPublic: boolean;
-    portfolioSlug: string;
-  } | null;
+  user?: User | null;
 }
 
 export function Nav({ user }: NavProps) {

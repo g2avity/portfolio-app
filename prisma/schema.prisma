@@ -1,11 +1,5 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
   previewFeatures = ["driverAdapters"]
 }
 
@@ -15,112 +9,98 @@ datasource db {
 }
 
 model User {
-  id          String        @id @default(cuid())
-  username    String        @unique
-  email       String        @unique
-  firstName   String
-  lastName    String
-  birthDate   DateTime?
-  phone       String?
-  address     String?
-  city        String?
-  state       String?
-  country     String?
-  bio         String?       @db.Text
-  linkedinUrl String?
-  githubUrl   String?
-  websiteUrl  String?
-  avatarUrl   String?
-  
-  // Public profile settings
-  isPublic    Boolean       @default(false)
-  portfolioSlug String?     @unique
-  
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-
-  // Relationships
-  experiences Experience[]
-  skills      Skill[]
-  starMemos   StarMemo[]
-  
-  // Authentication relationships
-  accounts Account[]
-  sessions Session[]
+  id             String          @id @default(cuid())
+  email          String          @unique
+  firstName      String
+  lastName       String
+  birthDate      DateTime?
+  phone          String?
+  address        String?
+  city           String?
+  state          String?
+  country        String?
+  bio            String?
+  linkedinUrl    String?
+  githubUrl      String?
+  websiteUrl     String?
+  avatarUrl      String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  isPublic       Boolean         @default(false)
+  portfolioSlug  String?         @unique
+  username       String          @unique
+  accounts       Account[]
+  customSections CustomSection[]
+  experiences    Experience[]
+  sessions       Session[]
+  skills         Skill[]
+  starMemos      StarMemo[]
 
   @@map("users")
 }
 
 model Experience {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   title       String
   companyName String
-  description String   @db.Text
+  description String
   startDate   DateTime
   endDate     DateTime?
-  isCurrent   Boolean  @default(false)
+  isCurrent   Boolean   @default(false)
   location    String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Foreign key relationship to User
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("experiences")
 }
 
 model Skill {
-  id          String   @id @default(cuid())
-  name        String
-  description String   @db.Text
-  category    String?
-  proficiency Int?     @default(1) // 1-5 scale
+  id                String   @id @default(cuid())
+  name              String
+  description       String
+  category          String?
+  proficiency       Int?     @default(1)
   yearsOfExperience Int?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Foreign key relationship to User
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("skills")
 }
 
 model StarMemo {
   id        String   @id @default(cuid())
-  situation String   @db.Text
-  task      String   @db.Text
-  action    String   @db.Text
-  result    String   @db.Text
-  title     String?  // Optional title for the STAR memo
+  situation String
+  task      String
+  action    String
+  result    String
+  title     String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  // Foreign key relationship to User
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("star_memos")
 }
 
-// Authentication models for remix-auth
 model Account {
   id                String  @id @default(cuid())
   userId            String
   type              String
   provider          String
   providerAccountId String
-  password          String? // For credentials-based authentication
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
+  refresh_token     String?
+  access_token      String?
   expires_at        Int?
   token_type        String?
   scope             String?
-  id_token          String? @db.Text
+  id_token          String?
   session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  password          String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
   @@map("accounts")
@@ -143,4 +123,23 @@ model VerificationToken {
 
   @@unique([identifier, token])
   @@map("verification_tokens")
+}
+
+model CustomSection {
+  id          String   @id @default(cuid())
+  userId      String
+  title       String
+  slug        String
+  type        String
+  description String?
+  isPublic    Boolean  @default(true)
+  order       Int
+  layout      String   @default("default")
+  content     Json
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, slug])
+  @@map("custom_sections")
 }

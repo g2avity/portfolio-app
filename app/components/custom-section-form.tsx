@@ -1,81 +1,49 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Form } from "react-router";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
 import { Label } from "./ui/label";
-import { Plus, X, Settings, FileText } from "lucide-react";
-
-interface CustomField {
-  id: string;
-  name: string;
-  type: "text" | "textarea" | "date" | "number" | "url";
-  required: boolean;
-  placeholder?: string;
-}
+import { Plus, X, Settings, FileText, CheckCircle } from "lucide-react";
+import { 
+  getAllSectionTypes, 
+  getPredefinedSectionTemplate,
+  type PredefinedSectionType 
+} from "../lib/content-section-models";
 
 interface CustomSectionFormData {
+  id?: string;
   title: string;
   description: string;
-  fields: CustomField[];
+  type: string;
 }
 
 interface CustomSectionFormProps {
-  onClose: () => void; // Changed from onSubmit/onCancel to onClose
+  onClose: () => void;
   initialData?: Partial<CustomSectionFormData>;
   mode: "add" | "edit";
-  templates?: {
-    name: string;
-    description: string;
-    fields: CustomField[];
-  }[];
 }
 
-const DEFAULT_TEMPLATES = [
-  {
-    name: "STAR Memo",
-    description: "Situation, Task, Action, Result format for achievements",
-    fields: [
-      { id: "situation", name: "Situation", type: "textarea" as const, required: true, placeholder: "Describe the context and challenge..." },
-      { id: "task", name: "Task", type: "textarea" as const, required: true, placeholder: "What needed to be accomplished?" },
-      { id: "action", name: "Action", type: "textarea" as const, required: true, placeholder: "What did you do to address it?" },
-      { id: "result", name: "Result", type: "textarea" as const, required: true, placeholder: "What was the outcome and impact?" },
-    ]
-  },
-  {
-    name: "Project Showcase",
-    description: "Highlight a specific project or initiative",
-    fields: [
-      { id: "projectName", name: "Project Name", type: "text" as const, required: true, placeholder: "Project title" },
-      { id: "role", name: "Your Role", type: "text" as const, required: true, placeholder: "Your position on the project" },
-      { id: "description", name: "Description", type: "textarea" as const, required: true, placeholder: "Project overview and goals" },
-      { id: "technologies", name: "Technologies Used", type: "text" as const, required: false, placeholder: "Tech stack, tools, frameworks" },
-      { id: "outcome", name: "Outcome", type: "textarea" as const, required: true, placeholder: "Results and impact" },
-    ]
-  },
-  {
-    name: "Speaking Engagement",
-    description: "Document presentations, talks, or workshops",
-    fields: [
-      { id: "eventName", name: "Event Name", type: "text" as const, required: true, placeholder: "Conference, meetup, or event" },
-      { id: "title", name: "Talk Title", type: "text" as const, required: true, placeholder: "Title of your presentation" },
-      { id: "date", name: "Date", type: "date" as const, required: true },
-      { id: "audience", name: "Audience Size", type: "number" as const, required: false, placeholder: "Number of attendees" },
-      { id: "description", name: "Description", type: "textarea" as const, required: true, placeholder: "What you presented and key takeaways" },
-    ]
-  }
-];
-
-export function CustomSectionForm({ onClose, initialData, mode, templates = DEFAULT_TEMPLATES }: CustomSectionFormProps) {
+export function CustomSectionForm({ onClose, initialData, mode }: CustomSectionFormProps) {
   const [formData, setFormData] = useState<CustomSectionFormData>({
     title: initialData?.title || "",
     description: initialData?.description || "",
-    fields: initialData?.fields || [],
+    type: initialData?.type || "",
   });
 
   const [errors, setErrors] = useState<Partial<CustomSectionFormData>>({});
-  const [showTemplates, setShowTemplates] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<PredefinedSectionType | null>(null);
+  const [showTemplatePreview, setShowTemplatePreview] = useState(false);
+
+  const availableTypes = getAllSectionTypes();
+
+  useEffect(() => {
+    if (formData.type) {
+      const template = getPredefinedSectionTemplate(formData.type);
+      setSelectedTemplate(template);
+    }
+  }, [formData.type]);
 
   const validateForm = (): boolean => {
     const newErrors: Partial<CustomSectionFormData> = {};
@@ -83,252 +51,196 @@ export function CustomSectionForm({ onClose, initialData, mode, templates = DEFA
     if (!formData.title.trim()) {
       newErrors.title = "Section title is required";
     }
-    if (!formData.description.trim()) {
-      newErrors.description = "Section description is required";
-    }
-    if (formData.fields.length === 0) {
-      newErrors.fields = "At least one field is required";
+    if (!formData.type) {
+      newErrors.type = "Please select a section type";
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  // No custom handleSubmit needed - let React Router handle form submission
 
-  const handleInputChange = (field: keyof CustomSectionFormData, value: string | CustomField[]) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    
-    // Clear error when user starts typing
-    if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: undefined }));
-    }
-  };
 
-  const addField = () => {
-    const newField: CustomField = {
-      id: `field_${Date.now()}`,
-      name: "",
-      type: "text",
-      required: false,
+
+
+  const getTemplateDescription = (type: string): string => {
+    const descriptions: Record<string, string> = {
+      'star-memo': 'Professional achievements using the STAR method (Situation, Task, Action, Result)',
+      'project-showcase': 'Showcase your technical projects with descriptions, technologies, and outcomes',
+      'community-engagement': 'Highlight your involvement in professional communities, open source, and volunteer work',
+      'speaking-engagements': 'Document your speaking engagements, presentations, and conference talks',
+      'certifications': 'Showcase your professional certifications, licenses, and credentials'
     };
-    setFormData(prev => ({
-      ...prev,
-      fields: [...prev.fields, newField]
-    }));
+    return descriptions[type] || "No description available";
   };
 
-  const updateField = (index: number, field: Partial<CustomField>) => {
-    setFormData(prev => ({
-      ...prev,
-      fields: prev.fields.map((f, i) => i === index ? { ...f, ...field } : f)
-    }));
-  };
-
-  const removeField = (index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      fields: prev.fields.filter((_, i) => i !== index)
-    }));
-  };
-
-  const applyTemplate = (template: typeof DEFAULT_TEMPLATES[0]) => {
-    setFormData({
-      title: template.name,
-      description: template.description,
-      fields: template.fields.map(field => ({
-        ...field,
-        id: `${field.id}_${Date.now()}`
-      }))
-    });
-    setShowTemplates(false);
+  const getTemplateFields = (type: string): string[] => {
+    const template = getPredefinedSectionTemplate(type);
+    return template?.fields || [];
   };
 
   return (
-    <Card className="w-full max-w-4xl mx-auto">
+    <Card className="w-full max-w-4xl">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Settings className="w-5 h-5" />
-          {mode === "add" ? "Create Custom Section" : "Edit Custom Section"}
+          <FileText className="w-5 h-5" />
+          {mode === "add" ? "Create New Custom Section" : "Edit Custom Section"}
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <Form method="post" className="space-y-6">
-          {/* Hidden action field */}
-          <input type="hidden" name="_action" value="createCustomSection" />
-          {/* Section Title */}
-          <div className="space-y-2">
-            <Label htmlFor="title" className="flex items-center gap-2">
-              <FileText className="w-4 h-4" />
-              Section Title *
-            </Label>
-            <Input
-              id="title"
-              name="title"
-              defaultValue={formData.title}
-              placeholder="e.g., STAR Memos, Project Showcase, Speaking Engagements"
-              className={errors.title ? "border-red-500" : ""}
-            />
-            {errors.title && (
-              <p className="text-sm text-red-600">{errors.title}</p>
-            )}
-          </div>
-
-          {/* Section Description */}
-          <div className="space-y-2">
-            <Label htmlFor="description" className="flex items-center gap-2">
-              <FileText className="w-4 h-4" />
-              Section Description *
-            </Label>
-            <Textarea
-              id="description"
-              name="description"
-              defaultValue={formData.description}
-              placeholder="Describe what this section will contain..."
-              rows={3}
-              className={errors.description ? "border-red-500" : ""}
-            />
-            {errors.description && (
-              <p className="text-sm text-red-600">{errors.description}</p>
-            )}
-          </div>
-
-          {/* Templates */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <Label className="text-sm font-medium">Quick Templates</Label>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setShowTemplates(!showTemplates)}
+        <Form method="post">
+          <input type="hidden" name="_action" value={mode === "add" ? "createCustomSection" : "updateCustomSection"} />
+          {mode === "edit" && initialData && (
+            <input type="hidden" name="sectionId" value={initialData.id} />
+          )}
+          
+          <div className="space-y-6">
+            {/* Section Type Selection */}
+            <div className="space-y-2">
+              <Label htmlFor="type" className="text-sm font-medium">
+                Section Type *
+              </Label>
+              <select
+                id="type"
+                name="type"
+                value={formData.type}
+                onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value }))}
+                disabled={mode === "edit"}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
-                {showTemplates ? "Hide" : "Show"} Templates
-              </Button>
-            </div>
-            
-            {showTemplates && (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                {templates.map((template) => (
-                  <Card
-                    key={template.name}
-                    className="p-3 cursor-pointer hover:border-blue-300 transition-colors"
-                    onClick={() => applyTemplate(template)}
-                  >
-                    <div className="font-medium text-sm">{template.name}</div>
-                    <div className="text-xs text-gray-600 mt-1">{template.description}</div>
-                    <div className="text-xs text-gray-500 mt-2">{template.fields.length} fields</div>
-                  </Card>
+                <option value="">Choose a section type...</option>
+                {availableTypes.map((type) => (
+                  <option key={type} value={type}>
+                    {type.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                  </option>
                 ))}
-              </div>
-            )}
-          </div>
-
-          {/* Custom Fields */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <Label className="text-sm font-medium">Section Fields</Label>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={addField}
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Add Field
-              </Button>
+              </select>
+              {errors.type && (
+                <p className="text-sm text-red-600">{errors.type}</p>
+              )}
+              {formData.type && (
+                <p className="text-sm text-gray-600">
+                  {getTemplateDescription(formData.type)}
+                </p>
+              )}
             </div>
 
-            {formData.fields.length === 0 ? (
-              <div className="text-center py-8 text-gray-500 border-2 border-dashed border-gray-300 rounded-lg">
-                <FileText className="w-12 h-12 mx-auto mb-3 text-gray-400" />
-                <p>No fields defined yet</p>
-                <p className="text-sm">Add fields to define the structure of this section</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {formData.fields.map((field, index) => (
-                  <Card key={field.id} className="p-4">
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+            {/* Template Preview */}
+            {selectedTemplate && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-medium">Template Preview</Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowTemplatePreview(!showTemplatePreview)}
+                  >
+                    {showTemplatePreview ? "Hide" : "Show"} Details
+                  </Button>
+                </div>
+                
+                {showTemplatePreview && (
+                  <div className="border rounded-lg p-4 bg-gray-50">
+                    <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
-                        <Label className="text-xs text-gray-600">Field Name</Label>
-                        <Input
-                          value={field.name}
-                          onChange={(e) => updateField(index, { name: e.target.value })}
-                          placeholder="Field name"
-                          className="text-sm"
-                        />
+                        <span className="font-medium">Layout:</span> {selectedTemplate.layout}
                       </div>
-                      
                       <div>
-                        <Label className="text-xs text-gray-600">Type</Label>
-                        <select
-                          value={field.type}
-                          onChange={(e) => updateField(index, { type: e.target.value as CustomField['type'] })}
-                          className="w-full px-2 py-1 text-sm border rounded"
-                        >
-                          <option value="text">Text</option>
-                          <option value="textarea">Long Text</option>
-                          <option value="date">Date</option>
-                          <option value="number">Number</option>
-                          <option value="url">URL</option>
-                        </select>
+                        <span className="font-medium">Max Entries:</span> {selectedTemplate.maxEntries || 'Unlimited'}
                       </div>
-                      
-                      <div className="flex items-center">
-                        <label className="flex items-center space-x-2">
-                          <input
-                            type="checkbox"
-                            checked={field.required}
-                            onChange={(e) => updateField(index, { required: e.target.checked })}
-                            className="rounded"
-                          />
-                          <span className="text-xs text-gray-600">Required</span>
-                        </label>
+                      <div>
+                        <span className="font-medium">Images:</span> {selectedTemplate.allowImages ? 'Yes' : 'No'}
                       </div>
-                      
-                      <div className="flex items-center justify-end">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => removeField(index)}
-                          className="text-red-600 hover:text-red-700"
-                        >
-                          <X className="w-4 h-4" />
-                        </Button>
+                      <div>
+                        <span className="font-medium">Code:</span> {selectedTemplate.allowCode ? 'Yes' : 'No'}
                       </div>
                     </div>
                     
-                    {field.type === "textarea" && (
-                      <div className="mt-3">
-                        <Label className="text-xs text-gray-600">Placeholder Text</Label>
-                        <Input
-                          value={field.placeholder || ""}
-                          onChange={(e) => updateField(index, { placeholder: e.target.value })}
-                          placeholder="Optional placeholder text"
-                          className="text-sm"
-                        />
+                    <div className="mt-3">
+                      <span className="font-medium text-sm">Fields:</span>
+                      <div className="flex flex-wrap gap-2 mt-1">
+                        {selectedTemplate.fields.map((field) => (
+                          <span 
+                            key={field} 
+                            className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs"
+                          >
+                            {field}
+                          </span>
+                        ))}
                       </div>
-                    )}
-                  </Card>
-                ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
-            
-            {errors.fields && (
-              <p className="text-sm text-red-600">{errors.fields}</p>
-            )}
-          </div>
 
-          {/* Form Actions */}
-          <div className="flex justify-end gap-3 pt-4">
-            <Button type="button" variant="outline" onClick={onCancel}>
-              Cancel
-            </Button>
-            <Button type="submit">
-              {mode === "add" ? "Create Section" : "Save Changes"}
-            </Button>
+            {/* Section Title */}
+            <div className="space-y-2">
+              <Label htmlFor="title" className="text-sm font-medium">
+                Section Title *
+              </Label>
+              <Input
+                id="title"
+                name="title"
+                value={formData.title}
+                onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                placeholder="e.g., My Professional Certifications"
+                className={errors.title ? "border-red-500" : ""}
+              />
+              {errors.title && (
+                <p className="text-sm text-red-600">{errors.title}</p>
+              )}
+            </div>
+
+            {/* Section Description */}
+            <div className="space-y-2">
+              <Label htmlFor="description" className="text-sm font-medium">
+                Description
+              </Label>
+              <Textarea
+                id="description"
+                name="description"
+                value={formData.description}
+                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                placeholder="Brief description of what this section will contain..."
+                rows={3}
+              />
+            </div>
+
+            {/* Public/Private Toggle */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Visibility</Label>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="isPublic"
+                  name="isPublic"
+                  defaultChecked={true}
+                  className="rounded border-gray-300"
+                />
+                <Label htmlFor="isPublic" className="text-sm">
+                  Make this section public on my portfolio
+                </Label>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex justify-end gap-3 pt-4 border-t">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onClose}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={!initialData?.title || !initialData?.type}
+              >
+                {mode === "add" ? "Create Section" : "Update Section"}
+              </Button>
+            </div>
           </div>
         </Form>
       </CardContent>
