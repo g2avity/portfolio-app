@@ -4,6 +4,7 @@ import { Plus, Edit, Trash2, Eye, EyeOff, ChevronDown, ChevronUp } from "lucide-
 import type { CustomSection } from "../lib/db.server";
 import { RichTextDisplay } from "./rich-text-display";
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 
 
 // Truncated field component with gradient fade and custom hover preview
@@ -20,6 +21,7 @@ function TruncatedField({
 }) {
   const [isHovered, setIsHovered] = useState(false);
   const hoverTimeoutRef = useRef<number | null>(null);
+  const previewRef = useRef<HTMLDivElement>(null);
   
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -29,6 +31,23 @@ function TruncatedField({
       }
     };
   }, []);
+
+  // Handle click outside to close preview
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (previewRef.current && !previewRef.current.contains(event.target as Node)) {
+        setIsHovered(false);
+      }
+    };
+
+    if (isHovered) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isHovered]);
   
   if (!content) return null;
   
@@ -79,13 +98,42 @@ function TruncatedField({
         {/* Full-width gradient fade overlay at bottom */}
         <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-gray-50 to-transparent" />
         
-        {/* Custom hover preview - fixed positioned */}
-        {isHovered && (
-          <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 w-[600px] max-h-[500px] overflow-y-auto bg-white border rounded-lg shadow-lg p-4">
+        {/* Custom hover preview - rendered via portal to break out of container constraints */}
+        {isHovered && createPortal(
+          <div 
+            ref={previewRef}
+            style={{
+              position: 'fixed',
+              top: '50vh',
+              left: '50vw',
+              transform: 'translate(-50%, -50%)',
+              zIndex: 9999,
+              width: '90vw',
+              maxWidth: '800px',
+              minWidth: '300px',
+              maxHeight: '80vh',
+              overflowY: 'auto',
+              backgroundColor: 'white',
+              border: '1px solid #e5e7eb',
+              borderRadius: '0.5rem',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+              padding: '1rem'
+            }}
+          >
+            <div className="flex justify-between items-start mb-3">
+              <h4 className="text-sm font-medium text-gray-900">Full Content Preview</h4>
+              <button 
+                onClick={() => setIsHovered(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                ✕
+              </button>
+            </div>
             <div className="text-sm">
               <RichTextDisplay content={content} />
             </div>
-          </div>
+          </div>,
+          document.body
         )}
       </div>
     </div>
