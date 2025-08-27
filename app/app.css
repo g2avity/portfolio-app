@@ -43,6 +43,40 @@
   align-items: flex-start;
 }
 
+/* Main content area - prevent horizontal expansion */
+.main-content-area {
+  flex: 1;
+  min-width: 0; /* Allow flex item to shrink below content size */
+  max-width: calc(100vw - 400px); /* Prevent expansion beyond viewport minus sidebar */
+}
+
+/* Card content constraints */
+.card-content-constrained {
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: break-word;
+  max-width: 100%;
+}
+
+/* Entry content transitions */
+.entry-content {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+  transform-origin: top;
+}
+
+.entry-content.collapsed {
+  max-height: 0;
+  opacity: 0;
+  transform: scaleY(0);
+}
+
+.entry-content.expanded {
+  max-height: none;
+  opacity: 1;
+  transform: scaleY(1);
+}
+
 /* Improved sticky sidebar */
 .sidebar-sticky {
   position: sticky;
@@ -51,6 +85,7 @@
   max-height: calc(100vh - 8rem);
   overflow-y: auto;
   flex-shrink: 0;
+  width: 320px; /* Fixed width to prevent compression */
 }
 
 /* Smooth transitions for content height changes */

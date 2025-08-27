@@ -9,6 +9,7 @@ export const sessionStorage = createCookieSessionStorage({
     httpOnly: true, // for security reasons, make this cookie http only
     secrets: [process.env.SESSION_SECRET || "default-secret"], // replace this with an actual secret
     secure: process.env.NODE_ENV === "production", // enable this in prod only
+    maxAge: 60 * 60 * 24 * 7, // 7 days in seconds
   },
 });
 

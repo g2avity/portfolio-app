@@ -21,25 +21,38 @@ export default function About() {
   return (
     <main className="min-h-screen bg-gray-50 py-16">
         <div className="container mx-auto px-4 max-w-7xl">
-          {/* Under Construction Card */}
-          <Card className="shadow-lg mb-8 border-orange-200 bg-orange-50">
+          {/* Platform Status Card */}
+          <Card className="shadow-lg mb-8 border-blue-200 bg-blue-50">
             <CardHeader className="text-center pb-4">
               <div className="flex justify-center mb-3">
-                <Construction className="w-12 h-12 text-orange-600" />
+                <Construction className="w-12 h-12 text-blue-600" />
               </div>
-              <CardTitle className="text-2xl font-bold text-orange-800">
-                🚧 Under Construction! 🚧
+              <CardTitle className="text-2xl font-bold text-blue-800">
+                🚧 Platform Development in Progress 🚧
               </CardTitle>
             </CardHeader>
             <CardContent className="text-center">
-              <p className="text-orange-700 text-lg leading-relaxed max-w-3xl mx-auto">
-                I'm actively building this portfolio platform to showcase modern web development practices 
-                and create a scalable solution for professionals to display their work. This isn't just 
-                another portfolio site—it's a demonstration of clean architecture, type safety, and 
-                developer experience best practices. Every feature you see is built with scalability 
-                and maintainability in mind.
+              <p className="text-blue-700 text-lg leading-relaxed max-w-3xl mx-auto">
+                This portfolio platform is actively being developed to showcase modern web development practices 
+                and create a scalable solution for professionals to display their work. While the core architecture 
+                and dashboard functionality are taking shape, we're still building out key features including 
+                the public portfolio routes and finalizing the user experience.
               </p>
-              <p className="text-orange-600 text-sm mt-4 font-medium">
+              <div className="mt-4 p-4 bg-blue-100 rounded-lg border border-blue-200">
+                <p className="text-blue-800 font-semibold text-sm mb-2">
+                  🎯 Development Roadmap:
+                </p>
+                <ul className="text-blue-700 text-sm space-y-1 text-left max-w-2xl mx-auto">
+                  <li>• Complete dashboard functionality and user management</li>
+                  <li>• Develop public portfolio viewing routes</li>
+                  <li>• Implement advanced content display options</li>
+                  <li>• Polish user experience and responsive design</li>
+                </ul>
+                <p className="text-blue-800 font-medium text-sm mt-3">
+                  🚀 Targeting Limited Beta Release: <span className="font-bold">September 2025</span>
+                </p>
+              </div>
+              <p className="text-blue-600 text-sm mt-4 font-medium">
                 Built with ❤️ and lots of ☕
               </p>
             </CardContent>
@@ -60,6 +73,12 @@ export default function About() {
                     emphasizing clean architecture, type safety, and scalable design patterns. 
                     Built with developer experience in mind, it serves as both a functional 
                     portfolio showcase and a testament to current web development best practices.
+                  </p>
+                  <p className="text-sm text-gray-600 leading-relaxed mt-4">
+                    Current features include dynamic custom sections, markdown support, collapsible content, 
+                    session management, and responsive design—all built with modern React patterns 
+                    and a robust backend architecture. The platform is designed to be highly extensible 
+                    and will support advanced portfolio customization options in the final release.
                   </p>
                 </div>
               </div>
@@ -94,6 +113,10 @@ export default function About() {
                     <Layers className="w-4 h-4 text-blue-600 mr-3 flex-shrink-0" />
                     shadcn/ui components
                   </li>
+                  <li className="flex items-center">
+                    <Code2 className="w-4 h-4 text-blue-600 mr-3 flex-shrink-0" />
+                    React Markdown rendering
+                  </li>
                 </ul>
               </CardContent>
             </Card>
@@ -114,11 +137,11 @@ export default function About() {
                   </li>
                   <li className="flex items-center">
                     <Database className="w-4 h-4 text-green-600 mr-3 flex-shrink-0" />
-                    PostgreSQL database
+                    PostgreSQL hosted on Prisma Accelerate
                   </li>
                   <li className="flex items-center">
-                    <Zap className="w-4 h-4 text-green-600 mr-3 flex-shrink-0" />
-                    Prisma Accelerate for hosting
+                    <Shield className="w-4 h-4 text-green-600 mr-3 flex-shrink-0" />
+                    Session-based authentication
                   </li>
                 </ul>
               </CardContent>
@@ -136,7 +159,7 @@ export default function About() {
                 <ul className="space-y-2 text-sm text-gray-700">
                   <li className="flex items-center">
                     <Container className="w-4 h-4 text-purple-600 mr-3 flex-shrink-0" />
-                    Docker for containerization
+                    Vercel for hosting & deployment
                   </li>
                   <li className="flex items-center">
                     <CheckCircle className="w-4 h-4 text-purple-600 mr-3 flex-shrink-0" />
@@ -145,6 +168,10 @@ export default function About() {
                   <li className="flex items-center">
                     <Cpu className="w-4 h-4 text-purple-600 mr-3 flex-shrink-0" />
                     Node.js 24.5.0 runtime
+                  </li>
+                  <li className="flex items-center">
+                    <Zap className="w-4 h-4 text-purple-600 mr-3 flex-shrink-0" />
+                    Vite for fast builds
                   </li>
                 </ul>
               </CardContent>

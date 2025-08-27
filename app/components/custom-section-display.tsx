@@ -1,9 +1,9 @@
 import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
-import { Plus, Edit, Trash2, Eye, EyeOff } from "lucide-react";
+import { Plus, Edit, Trash2, Eye, EyeOff, ChevronDown, ChevronUp } from "lucide-react";
 import type { CustomSection } from "../lib/db.server";
 import { RichTextDisplay } from "./rich-text-display";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 
 
 // Truncated field component with gradient fade and custom hover preview
@@ -19,7 +19,16 @@ function TruncatedField({
   isExpanded?: boolean;
 }) {
   const [isHovered, setIsHovered] = useState(false);
-  const [hoverTimeout, setHoverTimeout] = useState<number | null>(null);
+  const hoverTimeoutRef = useRef<number | null>(null);
+  
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (hoverTimeoutRef.current) {
+        clearTimeout(hoverTimeoutRef.current);
+      }
+    };
+  }, []);
   
   if (!content) return null;
   
@@ -36,26 +45,23 @@ function TruncatedField({
   const truncatedContent = content.substring(0, maxChars);
   
   const handleMouseEnter = () => {
-    console.log('Mouse entered - starting hover timer');
-    // Clear any existing timeout
-    if (hoverTimeout) {
-      clearTimeout(hoverTimeout);
+    // Clear any existing timeout first
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
     }
     
     // Set new timeout for 1 second delay
-    const timeout = setTimeout(() => {
-      console.log('Hover timeout triggered - showing preview');
+    hoverTimeoutRef.current = setTimeout(() => {
       setIsHovered(true);
     }, 1000);
-    
-    setHoverTimeout(timeout);
   };
   
   const handleMouseLeave = () => {
     // Clear timeout and hide immediately
-    if (hoverTimeout) {
-      clearTimeout(hoverTimeout);
-      setHoverTimeout(null);
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
     }
     setIsHovered(false);
   };
@@ -106,6 +112,29 @@ export function CustomSectionDisplay({
   const entries = section.content?.entries || [];
   const hasEntries = entries.length > 0;
   const [expandedEntries, setExpandedEntries] = useState<Set<string>>(new Set());
+  const [collapsedEntries, setCollapsedEntries] = useState<Set<string>>(new Set());
+
+  // Helper function to determine which fields should be treated as headers
+  const isHeaderField = (fieldName: string): boolean => {
+    const headerFields = ['title', 'name', 'heading'];
+    return headerFields.includes(fieldName.toLowerCase());
+  };
+
+  // Load collapsed state from sessionStorage on mount
+  useEffect(() => {
+    const saved = sessionStorage.getItem(`collapsed-entries-${section.id}`);
+    if (saved) {
+      setCollapsedEntries(new Set(JSON.parse(saved)));
+    }
+  }, [section.id]);
+
+  // Save collapsed state to sessionStorage when it changes
+  useEffect(() => {
+    sessionStorage.setItem(
+      `collapsed-entries-${section.id}`, 
+      JSON.stringify(Array.from(collapsedEntries))
+    );
+  }, [collapsedEntries, section.id]);
   
   const toggleEntryExpansion = (entryId: string) => {
     setExpandedEntries(prev => {
@@ -118,217 +147,147 @@ export function CustomSectionDisplay({
       return newSet;
     });
   };
+
+  const toggleEntryCollapse = (entryId: string) => {
+    setCollapsedEntries(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(entryId)) {
+        newSet.delete(entryId);
+      } else {
+        newSet.add(entryId);
+      }
+      return newSet;
+    });
+  };
+
+  const isEntryCollapsed = (entryId: string) => collapsedEntries.has(entryId);
   
   const isEntryExpanded = (entryId: string) => expandedEntries.has(entryId);
+
+  // Generic entry renderer with collapsible functionality
+  const renderGenericEntry = (entry: any, index: number) => {
+    return (
+      <div key={entry.id || index} className="border rounded-lg p-4 bg-gray-50">
+        <div className="flex justify-between items-start gap-4">
+          <div className="flex-1 space-y-3 min-w-0 card-content-constrained">
+            {/* Render header fields (title, name, heading) */}
+            {section.content?.fields?.filter(isHeaderField).map((headerField: string) => {
+              const headerValue = entry[headerField];
+              if (!headerValue) return null;
+              
+              return (
+                <h4 key={headerField} className="font-medium text-gray-900">
+                  {headerValue}
+                </h4>
+              );
+            })}
+            
+            {/* Entry content - collapsible */}
+            <div className={`entry-content ${
+              isEntryCollapsed(entry.id) ? 'collapsed' : 'expanded'
+            }`}>
+              <div className="space-y-3">
+                {/* Use fields array for proper ordering - exclude header fields */}
+                {section.content?.fields?.filter((fieldName: string) => !isHeaderField(fieldName)).map((fieldName: string) => {
+                  const fieldValue = entry[fieldName];
+                  if (!fieldValue) return null;
+                  
+                  return (
+                    <div key={fieldName}>
+                      <label className="text-xs font-medium text-gray-600 uppercase tracking-wide">
+                        {fieldName.charAt(0).toUpperCase() + fieldName.slice(1)}
+                      </label>
+                      <TruncatedField 
+                        content={fieldValue} 
+                        maxChars={300}
+                        className="mt-1"
+                        isExpanded={isEntryExpanded(entry.id)}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+              {entry.createdAt && (
+                <p className="text-xs text-gray-500 mt-2">
+                  Created: {new Date(entry.createdAt).toLocaleDateString()}
+                </p>
+              )}
+            </div>
+          </div>
+          
+          <div className="flex gap-2 flex-shrink-0">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onEditEntry(section.id, entry.id)}
+            >
+              <Edit className="w-3 h-3 mr-1" />
+              Edit
+            </Button>
+            
+            {/* View button - only when expanded */}
+            {!isEntryCollapsed(entry.id) && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-blue-600"
+                onClick={() => toggleEntryExpansion(entry.id)}
+              >
+                {isEntryExpanded(entry.id) ? (
+                  <>
+                    <EyeOff className="w-3 h-3 mr-1" />
+                    Hide
+                  </>
+                ) : (
+                  <>
+                    <Eye className="w-3 h-3 mr-1" />
+                    View
+                  </>
+                )}
+              </Button>
+            )}
+            
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-red-600"
+              onClick={() => onDeleteEntry(section.id, entry.id)}
+            >
+              <Trash2 className="w-3 h-3 mr-1" />
+              Delete
+            </Button>
+            
+            {/* Collapse toggle button */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => toggleEntryCollapse(entry.id)}
+              className="text-gray-600"
+            >
+              {isEntryCollapsed(entry.id) ? (
+                <ChevronDown className="w-3 h-3" />
+              ) : (
+                <ChevronUp className="w-3 h-3" />
+              )}
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   // Render entry based on section type
   const renderEntry = (entry: any, index: number) => {
     switch (section.type) {
       case 'star-memo':
-        return (
-          <div key={entry.id || index} className="border rounded-lg p-4 bg-gray-50">
-            <div className="flex justify-between items-start">
-              <div className="flex-1 space-y-3">
-                {entry.title && (
-                  <h4 className="font-medium text-gray-900">{entry.title}</h4>
-                )}
-                <div className="space-y-3">
-                  {/* Use fields array for proper ordering */}
-                  {section.content?.fields?.map((fieldName: string) => {
-                    const fieldValue = entry[fieldName];
-                    if (!fieldValue) return null;
-                    
-                    return (
-                      <div key={fieldName}>
-                        <label className="text-xs font-medium text-gray-600 uppercase tracking-wide">
-                          {fieldName.charAt(0).toUpperCase() + fieldName.slice(1)}
-                        </label>
-                        <TruncatedField 
-                          content={fieldValue} 
-                          maxChars={300}
-                          className="mt-1"
-                          isExpanded={isEntryExpanded(entry.id)}
-                        />
-                      </div>
-                    );
-                  }) || (
-                    // Fallback to hardcoded order if fields array not available
-                    <>
-                      <div>
-                        <label className="text-xs font-medium text-gray-600 uppercase tracking-wide">Situation</label>
-                        <TruncatedField 
-                          content={entry.situation} 
-                          maxChars={300}
-                          className="mt-1"
-                          isExpanded={isEntryExpanded(entry.id)}
-                        />
-                      </div>
-                      <div>
-                        <label className="text-xs font-medium text-gray-600 uppercase tracking-wide">Task</label>
-                        <TruncatedField 
-                          content={entry.task} 
-                          maxChars={300}
-                          className="mt-1"
-                          isExpanded={isEntryExpanded(entry.id)}
-                        />
-                      </div>
-                      <div>
-                        <label className="text-xs font-medium text-gray-600 uppercase tracking-wide">Action</label>
-                        <TruncatedField 
-                          content={entry.action} 
-                          maxChars={300}
-                          className="mt-1"
-                          isExpanded={isEntryExpanded(entry.id)}
-                        />
-                      </div>
-                      <div>
-                        <label className="text-xs font-medium text-gray-600 uppercase tracking-wide">Result</label>
-                        <TruncatedField 
-                          content={entry.result} 
-                          maxChars={300}
-                          className="mt-1"
-                          isExpanded={isEntryExpanded(entry.id)}
-                        />
-                      </div>
-                    </>
-                  )}
-                </div>
-                {entry.createdAt && (
-                  <p className="text-xs text-gray-500 mt-2">
-                    Created: {new Date(entry.createdAt).toLocaleDateString()}
-                  </p>
-                )}
-              </div>
-              <div className="flex gap-2 ml-4">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onEditEntry(section.id, entry.id)}
-                >
-                  <Edit className="w-3 h-3 mr-1" />
-                  Edit
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="text-blue-600"
-                  onClick={() => toggleEntryExpansion(entry.id)}
-                >
-                  {isEntryExpanded(entry.id) ? (
-                    <>
-                      <EyeOff className="w-3 h-3 mr-1" />
-                      Hide
-                    </>
-                  ) : (
-                    <>
-                      <Eye className="w-3 h-3 mr-1" />
-                      View
-                    </>
-                  )}
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="text-red-600"
-                  onClick={() => onDeleteEntry(section.id, entry.id)}
-                >
-                  <Trash2 className="w-3 h-3 mr-1" />
-                  Delete
-                </Button>
-              </div>
-            </div>
-          </div>
-        );
+        return renderGenericEntry(entry, index);
 
       case 'project-showcase':
-        return (
-          <div key={entry.id || index} className="border rounded-lg p-4 bg-gray-50">
-            <div className="flex justify-between items-start">
-              <div className="flex-1 space-y-3">
-                <h4 className="font-medium text-gray-900">{entry.title}</h4>
-                <p className="text-sm text-gray-700">{entry.description}</p>
-                {entry.technologies && entry.technologies.length > 0 && (
-                  <div>
-                    <label className="text-xs font-medium text-gray-600 uppercase tracking-wide">Technologies</label>
-                    <div className="flex flex-wrap gap-1 mt-1">
-                      {entry.technologies.map((tech: string, techIndex: number) => (
-                        <span
-                          key={techIndex}
-                          className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs"
-                        >
-                          {tech}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {entry.outcome && (
-                  <div>
-                    <label className="text-xs font-medium text-gray-600 uppercase tracking-wide">Outcome</label>
-                    <p className="text-sm text-gray-800 mt-1">{entry.outcome}</p>
-                  </div>
-                )}
-                {entry.createdAt && (
-                  <p className="text-xs text-gray-500 mt-2">
-                    Created: {new Date(entry.createdAt).toLocaleDateString()}
-                  </p>
-                )}
-              </div>
-              <div className="flex gap-2 ml-4">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onEditEntry(section.id, entry.id)}
-                >
-                  <Edit className="w-3 h-3 mr-1" />
-                  Edit
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="text-red-600"
-                  onClick={() => onDeleteEntry(section.id, entry.id)}
-                >
-                  <Trash2 className="w-3 h-3 mr-1" />
-                  Delete
-                </Button>
-              </div>
-            </div>
-          </div>
-        );
+        return renderGenericEntry(entry, index);
 
       default:
         // Generic entry renderer for unknown types
-        return (
-          <div key={entry.id || index} className="border rounded-lg p-4 bg-gray-50">
-            <div className="flex justify-between items-start">
-              <div className="flex-1">
-                <pre className="text-sm text-gray-800 whitespace-pre-wrap">
-                  {JSON.stringify(entry, null, 2)}
-                </pre>
-              </div>
-              <div className="flex gap-2 ml-4">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onEditEntry(section.id, entry.id)}
-                >
-                  <Edit className="w-3 h-3 mr-1" />
-                  Edit
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="text-red-600"
-                  onClick={() => onDeleteEntry(section.id, entry.id)}
-                >
-                  <Trash2 className="w-3 h-3 mr-1" />
-                  Delete
-                </Button>
-              </div>
-            </div>
-          </div>
-        );
+        return renderGenericEntry(entry, index);
     }
   };
 
