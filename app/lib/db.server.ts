@@ -781,3 +781,380 @@ export async function updateUserProfile(
 
 // Auto-setup graceful shutdown
 setupGracefulShutdown();
+
+// Custom Section related functions
+export interface CreateCustomSectionData {
+  userId: string;
+  title: string;
+  slug: string;
+  type: string;
+  description?: string;
+  isPublic: boolean;
+  order: number;
+  layout: string;
+  content: any; // JSONB content with template and entries
+}
+
+export interface UpdateCustomSectionData {
+  title?: string;
+  slug?: string;
+  description?: string;
+  isPublic?: boolean;
+  order?: number;
+  layout?: string;
+  content?: any;
+}
+
+export interface CustomSection {
+  id: string;
+  userId: string;
+  title: string;
+  slug: string;
+  type: string;
+  description: string | null;
+  isPublic: boolean;
+  order: number;
+  layout: string;
+  content: any;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Create new custom section
+export async function createCustomSection(data: CreateCustomSectionData): Promise<CustomSection> {
+  const client = await prisma;
+  
+  const customSection = await client.customSection.create({
+    data: {
+      userId: data.userId,
+      title: data.title,
+      slug: data.slug,
+      type: data.type,
+      description: data.description || null,
+      isPublic: data.isPublic,
+      order: data.order,
+      layout: data.layout,
+      content: data.content,
+    },
+    select: {
+      id: true,
+      userId: true,
+      title: true,
+      slug: true,
+      type: true,
+      description: true,
+      isPublic: true,
+      order: true,
+      layout: true,
+      content: true,
+      createdAt: true,
+      updatedAt: true,
+    }
+  });
+  
+  return customSection;
+}
+
+// Get custom sections for a user
+export async function getUserCustomSections(userId: string): Promise<CustomSection[]> {
+  try {
+    const client = await prisma;
+    
+    if (!client) {
+      throw new Error("Prisma client is undefined");
+    }
+    
+    if (!client.customSection) {
+      throw new Error("customSection model is not available on Prisma client");
+    }
+    
+    console.log("🔍 getUserCustomSections - Client:", !!client, "CustomSection model:", !!client.customSection);
+    
+    const customSections = await client.customSection.findMany({
+      where: { userId },
+      orderBy: { order: 'asc' },
+      select: {
+        id: true,
+        userId: true,
+        title: true,
+        slug: true,
+        type: true,
+        description: true,
+        isPublic: true,
+        order: true,
+        layout: true,
+        content: true,
+        createdAt: true,
+        updatedAt: true,
+      }
+    });
+    
+    console.log("✅ getUserCustomSections - Found", customSections.length, "sections");
+    return customSections;
+  } catch (error) {
+    console.error("❌ getUserCustomSections error:", error);
+    console.error("❌ Error details:", {
+      message: error instanceof Error ? error.message : "Unknown error",
+      stack: error instanceof Error ? error.stack : "No stack trace",
+      userId
+    });
+    throw error;
+  }
+}
+
+// Get custom section by ID
+export async function getCustomSectionById(id: string, userId: string): Promise<CustomSection | null> {
+  const client = await prisma;
+  
+  const customSection = await client.customSection.findFirst({
+    where: { 
+      id,
+      userId // Ensure user owns this section
+    },
+    select: {
+      id: true,
+      userId: true,
+      title: true,
+      slug: true,
+      type: true,
+      description: true,
+      isPublic: true,
+      order: true,
+      layout: true,
+      content: true,
+      createdAt: true,
+      updatedAt: true,
+    }
+  });
+  
+  return customSection;
+}
+
+// Get custom section by slug
+export async function getCustomSectionBySlug(slug: string, userId: string): Promise<CustomSection | null> {
+  const client = await prisma;
+  
+  const customSection = await client.customSection.findFirst({
+    where: { 
+      slug,
+      userId // Ensure user owns this section
+    },
+    select: {
+      id: true,
+      userId: true,
+      title: true,
+      slug: true,
+      type: true,
+      description: true,
+      isPublic: true,
+      order: true,
+      layout: true,
+      content: true,
+      createdAt: true,
+      updatedAt: true,
+    }
+  });
+  
+  return customSection;
+}
+
+// Update custom section
+export async function updateCustomSection(
+  id: string, 
+  userId: string, 
+  data: UpdateCustomSectionData
+): Promise<CustomSection> {
+  const client = await prisma;
+  
+  // Verify ownership before update
+  const existingSection = await client.customSection.findUnique({
+    where: { id },
+    select: { userId: true }
+  });
+  
+  if (!existingSection || existingSection.userId !== userId) {
+    throw new Error("Custom section not found or access denied");
+  }
+  
+  const updatedSection = await client.customSection.update({
+    where: { id },
+    data,
+    select: {
+      id: true,
+      userId: true,
+      title: true,
+      slug: true,
+      type: true,
+      description: true,
+      isPublic: true,
+      order: true,
+      layout: true,
+      content: true,
+      createdAt: true,
+      updatedAt: true,
+    }
+  });
+  
+  return updatedSection;
+}
+
+// Delete custom section
+export async function deleteCustomSection(id: string, userId: string): Promise<void> {
+  const client = await prisma;
+  
+  // Verify ownership before deletion
+  const customSection = await client.customSection.findUnique({
+    where: { id },
+    select: { userId: true }
+  });
+  
+  if (!customSection || customSection.userId !== userId) {
+    throw new Error("Custom section not found or access denied");
+  }
+  
+  await client.customSection.delete({
+    where: { id }
+  });
+}
+
+// Get custom section count for a user
+export async function getUserCustomSectionCount(userId: string): Promise<number> {
+  const client = await prisma;
+  
+  const count = await client.customSection.count({
+    where: { userId }
+  });
+  
+  return count;
+}
+
+// Reorder custom sections
+export async function reorderCustomSections(
+  userId: string, 
+  sectionOrders: Array<{ id: string; order: number }>
+): Promise<void> {
+  const client = await prisma;
+  
+  // Verify all sections belong to the user
+  const sectionIds = sectionOrders.map(s => s.id);
+  const userSections = await client.customSection.findMany({
+    where: { 
+      id: { in: sectionIds },
+      userId 
+    },
+    select: { id: true }
+  });
+  
+  if (userSections.length !== sectionIds.length) {
+    throw new Error("Some sections not found or access denied");
+  }
+  
+  // Update each section's order
+  for (const { id, order } of sectionOrders) {
+    await client.customSection.update({
+      where: { id },
+      data: { order }
+    });
+  }
+}
+
+// Get public custom sections for portfolio display
+export async function getPublicCustomSections(portfolioSlug: string): Promise<CustomSection[]> {
+  const client = await prisma;
+  
+  const customSections = await client.customSection.findMany({
+    where: {
+      user: { portfolioSlug },
+      isPublic: true
+    },
+    orderBy: { order: 'asc' },
+    select: {
+      id: true,
+      userId: true,
+      title: true,
+      slug: true,
+      type: true,
+      description: true,
+      isPublic: true,
+      order: true,
+      layout: true,
+      content: true,
+      createdAt: true,
+      updatedAt: true,
+    }
+  });
+  
+  return customSections;
+}
+
+// Copy template to create user's custom section
+export async function copyTemplateToUserSection(
+  userId: string,
+  templateType: string,
+  title: string,
+  description?: string
+): Promise<CustomSection> {
+  const client = await prisma;
+  
+  // Find the template
+  const template = await client.customSection.findFirst({
+    where: { 
+      type: templateType,
+      user: { id: { not: userId } } // Not owned by the current user
+    },
+    select: { content: true }
+  });
+  
+  if (!template) {
+    throw new Error(`Template '${templateType}' not found`);
+  }
+  
+  // Generate unique slug
+  const baseSlug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  let slug = baseSlug;
+  let counter = 1;
+  
+  while (await client.customSection.findFirst({ where: { userId, slug } })) {
+    slug = `${baseSlug}-${counter}`;
+    counter++;
+  }
+  
+  // Get the next order number
+  const maxOrder = await client.customSection.aggregate({
+    where: { userId },
+    _max: { order: true }
+  });
+  
+  const nextOrder = (maxOrder._max.order || 0) + 1;
+  
+  // Create the new section
+  const customSection = await client.customSection.create({
+    data: {
+      userId,
+      title,
+      slug,
+      type: templateType,
+      description: description || null,
+      isPublic: true,
+      order: nextOrder,
+      layout: template.content.layout || 'default',
+      content: template.content,
+    },
+    select: {
+      id: true,
+      userId: true,
+      title: true,
+      slug: true,
+      type: true,
+      description: true,
+      isPublic: true,
+      order: true,
+      layout: true,
+      content: true,
+      createdAt: true,
+      updatedAt: true,
+    }
+  });
+  
+  return customSection;
+}

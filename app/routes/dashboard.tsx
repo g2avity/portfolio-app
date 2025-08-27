@@ -10,8 +10,10 @@ import { DashboardSidebar } from "../components/dashboard-sidebar";
 import { ExperienceForm } from "../components/experience-form";
 import { SkillsForm } from "../components/skills-form";
 import { CustomSectionForm } from "../components/custom-section-form";
+import { CustomSectionDisplay } from "../components/custom-section-display";
+import { EntryForm } from "../components/entry-form";
 import { ProfileForm } from "../components/profile-form";
-import { getUserExperiences, getUserExperienceCount, createExperience, updateExperience, deleteExperience, getUserSkills, getUserSkillCount, createSkill, updateSkill, deleteSkill, updateUserProfile } from "../lib/db.server";
+import { getUserExperiences, getUserExperienceCount, createExperience, updateExperience, deleteExperience, getUserSkills, getUserSkillCount, createSkill, updateSkill, deleteSkill, updateUserProfile, getUserCustomSections, getUserCustomSectionCount, createCustomSection, updateCustomSection, deleteCustomSection } from "../lib/db.server";
 import { testBlobConnection } from "../lib/blob.server";
 import { redirect } from "react-router";
 import { RichTextDisplay } from "../components/rich-text-display";
@@ -32,19 +34,19 @@ export async function loader({ request }: LoaderFunctionArgs) {
   const user = await requireUser(request);
   
   // Fetch real portfolio stats from database
-  const [experiences, experienceCount, skills, skillsCount, starMemosCount] = await Promise.all([
+  const [experiences, experienceCount, skills, skillsCount, customSections, customSectionsCount] = await Promise.all([
     getUserExperiences(user.id),
     getUserExperienceCount(user.id),
     getUserSkills(user.id),
     getUserSkillCount(user.id),
-    // TODO: Implement custom sections counting
-    Promise.resolve(0), // star memos count placeholder
+    getUserCustomSections(user.id),
+    getUserCustomSectionCount(user.id),
   ]);
   
   const portfolioStats = {
     experiences: experienceCount,
     skills: skillsCount,
-    starMemos: starMemosCount
+    customSections: customSectionsCount
   };
   
   // Debug: Log user data to see if avatarUrl is present
@@ -62,7 +64,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
     console.error("❌ Blob connection test failed:", error);
   }
   
-  return { user, portfolioStats, experiences, skills };
+  return { user, portfolioStats, experiences, skills, customSections };
 }
 
 export async function action({ request }: LoaderFunctionArgs) {
@@ -444,6 +446,268 @@ export async function action({ request }: LoaderFunctionArgs) {
     }
   }
   
+  if (action === "createCustomSection") {
+    const type = formData.get("type") as string;
+    const title = formData.get("title") as string;
+    const description = formData.get("description") as string;
+    
+    if (!type || !title) {
+      return { 
+        success: false, 
+        error: "Missing custom section fields",
+        details: "Type and title are required"
+      };
+    }
+    
+    try {
+      // Import the helper function
+      const { createSectionFromTemplate } = await import("../lib/content-section-models");
+      const sectionData = createSectionFromTemplate(type, user.id, title, description);
+      
+      const customSection = await createCustomSection(sectionData);
+      
+      return { 
+        success: true, 
+        type: "custom-section-created",
+        title: customSection.title,
+        sectionType: customSection.type
+      };
+    } catch (error) {
+      console.error("Failed to create custom section:", error);
+      return { 
+        success: false, 
+        error: "Failed to create custom section",
+        details: error instanceof Error ? error.message : "Unknown error"
+      };
+    }
+  }
+  
+  if (action === "updateCustomSection") {
+    const sectionId = formData.get("sectionId") as string;
+    const title = formData.get("title") as string;
+    const description = formData.get("description") as string;
+    const isPublic = formData.get("isPublic") === "on";
+    
+    if (!sectionId || !title) {
+      return { 
+        success: false, 
+        error: "Missing custom section fields",
+        details: "Section ID and title are required"
+      };
+    }
+    
+    try {
+      await updateCustomSection(sectionId, user.id, {
+        title,
+        description: description || undefined,
+        isPublic,
+      });
+      
+      return { 
+        success: true, 
+        type: "custom-section-updated",
+        title,
+        sectionType: "Custom Section"
+      };
+    } catch (error) {
+      console.error("Failed to update custom section:", error);
+      return { 
+        success: false, 
+        error: "Failed to update custom section",
+        details: error instanceof Error ? error.message : "Unknown error"
+      };
+    }
+  }
+  
+  if (action === "deleteCustomSection") {
+    const sectionId = formData.get("sectionId") as string;
+    const title = formData.get("title") as string;
+    
+    if (!sectionId) {
+      return { 
+        success: false, 
+        error: "Missing section ID",
+        details: "Section ID is required for deletion"
+      };
+    }
+    
+    try {
+      await deleteCustomSection(sectionId, user.id);
+      
+      return { 
+        success: true, 
+        type: "custom-section-deleted",
+        title: title || 'Custom Section',
+        sectionType: "Custom Section"
+      };
+    } catch (error) {
+      console.error("Failed to delete custom section:", error);
+      return { 
+        success: false, 
+        error: "Failed to delete custom section",
+        details: error instanceof Error ? error.message : "Unknown error"
+      };
+    }
+  }
+
+  // Entry management actions
+  if (action === "addEntryToCustomSection") {
+    const sectionId = formData.get("sectionId") as string;
+    const entryData = JSON.parse(formData.get("entryData") as string);
+    
+    if (!sectionId || !entryData) {
+      return { 
+        success: false, 
+        error: "Missing entry data",
+        details: "Section ID and entry data are required"
+      };
+    }
+    
+    try {
+      // Import the helper function
+      const { addEntryToSection } = await import("../lib/content-section-models");
+      
+      // Get the current section
+      const currentSection = await getUserCustomSections(user.id);
+      const section = currentSection.find(s => s.id === sectionId);
+      
+      if (!section) {
+        return { 
+          success: false, 
+          error: "Section not found",
+          details: "The specified section does not exist"
+        };
+      }
+      
+      // Add entry to section content
+      const updatedContent = addEntryToSection(section.content, entryData);
+      
+      // Update the section with new content
+      await updateCustomSection(sectionId, user.id, {
+        content: updatedContent,
+      });
+      
+      return { 
+        success: true, 
+        type: "entry-added",
+        title: entryData.title || 'Entry',
+        sectionType: "Entry"
+      };
+    } catch (error) {
+      console.error("Failed to add entry:", error);
+      return { 
+        success: false, 
+        error: "Failed to add entry",
+        details: error instanceof Error ? error.message : "Unknown error"
+      };
+    }
+  }
+
+  if (action === "updateEntryInCustomSection") {
+    const sectionId = formData.get("sectionId") as string;
+    const entryId = formData.get("entryId") as string;
+    const entryData = JSON.parse(formData.get("entryData") as string);
+    
+    if (!sectionId || !entryId || !entryData) {
+      return { 
+        success: false, 
+        error: "Missing entry data",
+        details: "Section ID, entry ID, and entry data are required"
+      };
+    }
+    
+    try {
+      // Import the helper function
+      const { updateEntryInSection } = await import("../lib/content-section-models");
+      
+      // Get the current section
+      const currentSection = await getUserCustomSections(user.id);
+      const section = currentSection.find(s => s.id === sectionId);
+      
+      if (!section) {
+        return { 
+          success: false, 
+          error: "Section not found",
+          details: "The specified section does not exist"
+        };
+      }
+      
+      // Update entry in section content
+      const updatedContent = updateEntryInSection(section.content, entryId, entryData);
+      
+      // Update the section with new content
+      await updateCustomSection(sectionId, user.id, {
+        content: updatedContent,
+      });
+      
+      return { 
+        success: true, 
+        type: "entry-updated",
+        title: entryData.title || 'Entry',
+        sectionType: "Entry"
+      };
+    } catch (error) {
+      console.error("Failed to update entry:", error);
+      return { 
+        success: false, 
+        error: "Failed to update entry",
+        details: error instanceof Error ? error.message : "Unknown error"
+      };
+    }
+  }
+
+  if (action === "deleteEntryFromCustomSection") {
+    const sectionId = formData.get("sectionId") as string;
+    const entryId = formData.get("entryId") as string;
+    
+    if (!sectionId || !entryId) {
+      return { 
+        success: false, 
+        error: "Missing entry data",
+        details: "Section ID and entry ID are required"
+      };
+    }
+    
+    try {
+      // Import the helper function
+      const { removeEntryFromSection } = await import("../lib/content-section-models");
+      
+      // Get the current section
+      const currentSection = await getUserCustomSections(user.id);
+      const section = currentSection.find(s => s.id === sectionId);
+      
+      if (!section) {
+        return { 
+          success: false, 
+          error: "Section not found",
+          details: "The specified section does not exist"
+        };
+      }
+      
+      // Remove entry from section content
+      const updatedContent = removeEntryFromSection(section.content, entryId);
+      
+      // Update the section with new content
+      await updateCustomSection(sectionId, user.id, {
+        content: updatedContent,
+      });
+      
+      return { 
+        success: true, 
+        type: "entry-deleted",
+        title: 'Entry',
+        sectionType: "Entry"
+      };
+    } catch (error) {
+      console.error("Failed to delete entry:", error);
+      return { 
+        success: false, 
+        error: "Failed to delete entry",
+        details: error instanceof Error ? error.message : "Unknown error"
+      };
+    }
+  }
+  
   console.log("❌ No matching action found for:", action);
   throw new Response("Invalid action", { status: 400 });
 }
@@ -453,7 +717,7 @@ import { useState, useEffect } from "react";
 import { experienceToasts, profileToasts, skillToasts } from "../lib/toast.client";
 
 export default function Dashboard() {
-  const { user, portfolioStats, experiences, skills } = useLoaderData<typeof loader>();
+  const { user, portfolioStats, experiences, skills, customSections } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
   const submit = useSubmit();
   
@@ -462,14 +726,69 @@ export default function Dashboard() {
   const [showExperienceForm, setShowExperienceForm] = useState(false);
   const [showSkillsForm, setShowSkillsForm] = useState(false);
   const [showCustomSectionForm, setShowCustomSectionForm] = useState(false);
+  const [showEntryForm, setShowEntryForm] = useState(false);
   
   // Edit and delete state
   const [editingExperience, setEditingExperience] = useState<typeof experiences[0] | null>(null);
   const [deletingExperience, setDeletingExperience] = useState<typeof experiences[0] | null>(null);
   const [editingSkill, setEditingSkill] = useState<typeof skills[0] | null>(null);
   const [deletingSkill, setDeletingSkill] = useState<typeof skills[0] | null>(null);
+  const [editingCustomSection, setEditingCustomSection] = useState<typeof customSections[0] | null>(null);
+  const [deletingCustomSection, setDeletingCustomSection] = useState<typeof customSections[0] | null>(null);
+
+  // Entry management state
+  const [editingEntry, setEditingEntry] = useState<{ sectionId: string; entryId: string; entry: any } | null>(null);
+  const [deletingEntry, setDeletingEntry] = useState<{ sectionId: string; entryId: string; entry: any } | null>(null);
 
   // Old URL-based useEffect removed - now using direct state management
+
+  // Entry management handlers
+  const handleAddEntry = (sectionId: string) => {
+    const section = customSections.find(s => s.id === sectionId);
+    if (section) {
+      setEditingEntry({ sectionId, entryId: '', entry: null });
+      setShowEntryForm(true);
+    }
+  };
+
+  const handleEditEntry = (sectionId: string, entryId: string) => {
+    const section = customSections.find(s => s.id === sectionId);
+    if (section) {
+      const entry = section.content?.entries?.find((e: any) => e.id === entryId);
+      if (entry) {
+        setEditingEntry({ sectionId, entryId, entry });
+        setShowEntryForm(true);
+      }
+    }
+  };
+
+  const handleDeleteEntry = (sectionId: string, entryId: string) => {
+    const section = customSections.find(s => s.id === sectionId);
+    if (section) {
+      const entry = section.content?.entries?.find((e: any) => e.id === entryId);
+      if (entry) {
+        setDeletingEntry({ sectionId, entryId, entry });
+      }
+    }
+  };
+
+  const handleEntrySubmit = (entryData: any) => {
+    const formData = new FormData();
+    
+    if (editingEntry?.entryId) {
+      // Update existing entry
+      formData.append("_action", "updateEntryInCustomSection");
+      formData.append("sectionId", editingEntry.sectionId);
+      formData.append("entryId", editingEntry.entryId);
+    } else {
+      // Add new entry
+      formData.append("_action", "addEntryToCustomSection");
+      formData.append("sectionId", editingEntry!.sectionId);
+    }
+    
+    formData.append("entryData", JSON.stringify(entryData));
+    submit(formData, { method: "post" });
+  };
 
   // Handle action responses (success/error) and close modals
   useEffect(() => {
@@ -510,6 +829,33 @@ export default function Dashboard() {
             skillToasts.updated(actionData.title || "Skill");
           } else if (actionData.type === "skill-deleted") {
             skillToasts.deleted(actionData.title || "Skill");
+          }
+        } else if (actionData.type?.includes("custom-section")) {
+          setShowCustomSectionForm(false);
+          
+          // Show appropriate toast
+          if (actionData.type === "custom-section-created") {
+            // TODO: Add custom section toasts
+            console.log("Custom section created:", actionData.title);
+          } else if (actionData.type === "custom-section-updated") {
+            console.log("Custom section updated:", actionData.title);
+          } else if (actionData.type === "custom-section-deleted") {
+            console.log("Custom section deleted:", actionData.title);
+          }
+        } else if (actionData.type?.includes("entry")) {
+          // Reset entry editing state
+          setEditingEntry(null);
+          setDeletingEntry(null);
+          setShowEntryForm(false);
+          
+          // Show appropriate toast
+          if (actionData.type === "entry-added") {
+            // TODO: Add entry toasts
+            console.log("Entry added:", actionData.title);
+          } else if (actionData.type === "entry-updated") {
+            console.log("Entry updated:", actionData.title);
+          } else if (actionData.type === "entry-deleted") {
+            console.log("Entry deleted:", actionData.title);
           }
         }
         
@@ -566,7 +912,7 @@ export default function Dashboard() {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-        <div className="flex gap-8">
+        <div className="layout-original">
           {/* Main Content Area - Vertically Aligned Cards */}
           <div className="flex-1 space-y-8">
             {/* Profile Information Card */}
@@ -888,7 +1234,7 @@ export default function Dashboard() {
                 <CardTitle className="text-xl">Custom Sections</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {portfolioStats.starMemos === 0 ? (
+                {portfolioStats.customSections === 0 ? (
                   <div className="space-y-4">
                     {/* Empty state message */}
                     <div className="text-center py-6 text-gray-500">
@@ -908,10 +1254,10 @@ export default function Dashboard() {
                           </div>
                           <div className="text-left">
                             <p className="font-medium text-gray-700 group-hover:text-blue-700">
-                              {portfolioStats.starMemos === 0 ? 'Add Your First Custom Section' : 'Add Another Custom Section'}
+                              {portfolioStats.customSections === 0 ? 'Add Your First Custom Section' : 'Add Another Custom Section'}
                             </p>
                             <p className="text-sm text-gray-500 group-hover:text-blue-600">
-                              {portfolioStats.starMemos === 0 
+                              {portfolioStats.customSections === 0 
                                 ? 'Click to create your first custom content section' 
                                 : 'Click to add another custom section'
                               }
@@ -923,8 +1269,42 @@ export default function Dashboard() {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {/* TODO: Render actual custom sections from database */}
-                    <p className="text-gray-600">Custom sections will be displayed here</p>
+                    {customSections.map((section) => (
+                      <CustomSectionDisplay
+                        key={section.id}
+                        section={section}
+                        onEdit={(section) => {
+                          setEditingCustomSection(section);
+                          setShowCustomSectionForm(true);
+                        }}
+                        onDelete={(section) => setDeletingCustomSection(section)}
+                        onAddEntry={handleAddEntry}
+                        onEditEntry={handleEditEntry}
+                        onDeleteEntry={handleDeleteEntry}
+                      />
+                    ))}
+                    
+                    {/* Ghost Add Card - Always shown when there are sections */}
+                    <div 
+                      onClick={() => setShowCustomSectionForm(true)}
+                      className="group cursor-pointer"
+                    >
+                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 transition-all duration-200 hover:border-blue-400 hover:bg-blue-50">
+                        <div className="flex items-center gap-3 justify-center">
+                          <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center group-hover:bg-blue-100 transition-colors flex-shrink-0">
+                            <Plus className="w-5 h-5 text-gray-400 group-hover:text-blue-500" />
+                          </div>
+                          <div className="text-left">
+                            <p className="font-medium text-gray-700 group-hover:text-blue-700">
+                              Add Another Custom Section
+                            </p>
+                            <p className="text-sm text-gray-500 group-hover:text-blue-600">
+                              Click to add another custom section
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 )}
               </CardContent>
@@ -932,7 +1312,9 @@ export default function Dashboard() {
           </div>
 
           {/* Right Sidebar */}
-          <DashboardSidebar user={user} />
+          <div className="sidebar-sticky">
+            <DashboardSidebar user={user} />
+          </div>
         </div>
       </div>
 
@@ -1023,15 +1405,56 @@ export default function Dashboard() {
           <div className="min-h-full flex items-center justify-center p-4">
             <div className="relative w-full max-w-4xl my-8">
               <button
-                onClick={() => setShowCustomSectionForm(false)}
+                onClick={() => {
+                  setShowCustomSectionForm(false);
+                  setEditingCustomSection(null);
+                }}
                 className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 z-10"
               >
                 <X className="w-6 h-6" />
               </button>
-                          <CustomSectionForm
-              onClose={() => setShowCustomSectionForm(false)}
-              mode="add"
-            />
+              <CustomSectionForm
+                onClose={() => {
+                  setShowCustomSectionForm(false);
+                  setEditingCustomSection(null);
+                }}
+                mode={editingCustomSection ? "edit" : "add"}
+                initialData={editingCustomSection ? {
+                  id: editingCustomSection.id,
+                  title: editingCustomSection.title,
+                  description: editingCustomSection.description || '',
+                  type: editingCustomSection.type,
+                } : undefined}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Entry Form Modal */}
+      {showEntryForm && editingEntry && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 overflow-y-auto">
+          <div className="min-h-full flex items-center justify-center p-4">
+            <div className="relative w-full max-w-4xl my-8">
+              <button
+                onClick={() => {
+                  setShowEntryForm(false);
+                  setEditingEntry(null);
+                }}
+                className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 z-10"
+              >
+                <X className="w-6 h-6" />
+              </button>
+              <EntryForm
+                section={customSections.find(s => s.id === editingEntry.sectionId)!}
+                entry={editingEntry.entry}
+                onClose={() => {
+                  setShowEntryForm(false);
+                  setEditingEntry(null);
+                }}
+                onSubmit={handleEntrySubmit}
+                mode={editingEntry.entryId ? "edit" : "add"}
+              />
             </div>
           </div>
         </div>
@@ -1073,6 +1496,46 @@ export default function Dashboard() {
         }}
         title="Delete Skill"
         message={`Are you sure you want to delete "${deletingSkill?.name}"? This action cannot be undone.`}
+        confirmText="Yes, Delete"
+        cancelText="Cancel"
+        variant="danger"
+      />
+      
+      {/* Delete Confirmation Modal for Custom Sections */}
+      <ConfirmationModal
+        isOpen={!!deletingCustomSection}
+        onClose={() => setDeletingCustomSection(null)}
+        onConfirm={() => {
+          if (deletingCustomSection) {
+            const formData = new FormData();
+            formData.append("_action", "deleteCustomSection");
+            formData.append("sectionId", deletingCustomSection.id);
+            formData.append("title", deletingCustomSection.title);
+            submit(formData, { method: "post" });
+          }
+        }}
+        title="Delete Custom Section"
+        message={`Are you sure you want to delete "${deletingCustomSection?.title}"? This action cannot be undone.`}
+        confirmText="Yes, Delete"
+        cancelText="Cancel"
+        variant="danger"
+      />
+
+      {/* Delete Confirmation Modal for Entries */}
+      <ConfirmationModal
+        isOpen={!!deletingEntry}
+        onClose={() => setDeletingEntry(null)}
+        onConfirm={() => {
+          if (deletingEntry) {
+            const formData = new FormData();
+            formData.append("_action", "deleteEntryFromCustomSection");
+            formData.append("sectionId", deletingEntry.sectionId);
+            formData.append("entryId", deletingEntry.entryId);
+            submit(formData, { method: "post" });
+          }
+        }}
+        title="Delete Entry"
+        message={`Are you sure you want to delete this entry? This action cannot be undone.`}
         confirmText="Yes, Delete"
         cancelText="Cancel"
         variant="danger"
