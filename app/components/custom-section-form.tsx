@@ -236,7 +236,7 @@ export function CustomSectionForm({ onClose, initialData, mode }: CustomSectionF
               </Button>
               <Button
                 type="submit"
-                disabled={!initialData?.title || !initialData?.type}
+                disabled={!formData.title.trim() || !formData.type}
               >
                 {mode === "add" ? "Create Section" : "Update Section"}
               </Button>

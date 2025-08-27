@@ -914,7 +914,7 @@ export default function Dashboard() {
       <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
         <div className="layout-original">
           {/* Main Content Area - Vertically Aligned Cards */}
-          <div className="flex-1 space-y-8">
+          <div className="main-content-area space-y-8">
             {/* Profile Information Card */}
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">

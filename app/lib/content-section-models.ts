@@ -43,11 +43,12 @@ export interface CodeEntry extends BaseEntry {
 export interface StarMemoSection extends BaseCustomSection {
   type: 'star-memo';
   layout: 'timeline';
-  fields: ['situation', 'task', 'action', 'result'];
+  fields: ['title', 'situation', 'task', 'action', 'result'];
   allowImages: true;
   allowCode: false;
   maxEntries: 10;
   template: {
+    title: { label: string; required: boolean; type: 'text' };
     situation: { label: string; required: boolean; type: 'textarea' };
     task: { label: string; required: boolean; type: 'textarea' };
     action: { label: string; required: boolean; type: 'textarea' };
@@ -57,11 +58,11 @@ export interface StarMemoSection extends BaseCustomSection {
 }
 
 export interface StarMemoEntry extends BaseEntry {
+  title: string;
   situation: string;
   task: string;
   action: string;
   result: string;
-  title?: string;
   images?: string[];
 }
 
@@ -214,9 +215,10 @@ export const STAR_MEMO_TEMPLATE: StarMemoSection = {
   allowImages: true,
   allowCode: false,
   maxEntries: 10,
-  fields: ['situation', 'task', 'action', 'result'],
+  fields: ['title', 'situation', 'task', 'action', 'result'],
   entries: [],
   template: {
+    title: { label: 'Title', required: true, type: 'text' },
     situation: { label: 'Situation', required: true, type: 'textarea' },
     task: { label: 'Task', required: true, type: 'textarea' },
     action: { label: 'Action', required: true, type: 'textarea' },
