@@ -2,7 +2,7 @@ import type { LoaderFunctionArgs } from "react-router";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Link } from "react-router";
-import { Plus, Edit, Eye, X } from "lucide-react";
+import { Plus, Edit, Eye, X, Shield } from "lucide-react";
 
 import { requireUser } from "../lib/session.server";
 import { ErrorBoundary as AppErrorBoundary } from "../components/error-boundary";
@@ -13,6 +13,9 @@ import { CustomSectionForm } from "../components/custom-section-form";
 import { CustomSectionDisplay } from "../components/custom-section-display";
 import { EntryForm } from "../components/entry-form";
 import { ProfileForm } from "../components/profile-form";
+import PrivacySettingsModal from "../components/privacy-settings-modal";
+import CustomDomainModal from "../components/custom-domain-modal";
+import ThemeStylingModal from "../components/theme-styling-modal";
 import { getUserExperiences, getUserExperienceCount, createExperience, updateExperience, deleteExperience, getUserSkills, getUserSkillCount, createSkill, updateSkill, deleteSkill, updateUserProfile, getUserCustomSections, getUserCustomSectionCount, createCustomSection, updateCustomSection, deleteCustomSection } from "../lib/db.server";
 import { testBlobConnection } from "../lib/blob.server";
 import { redirect } from "react-router";
@@ -727,6 +730,9 @@ export default function Dashboard() {
   const [showSkillsForm, setShowSkillsForm] = useState(false);
   const [showCustomSectionForm, setShowCustomSectionForm] = useState(false);
   const [showEntryForm, setShowEntryForm] = useState(false);
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+  const [showDomainModal, setShowDomainModal] = useState(false);
+  const [showThemeModal, setShowThemeModal] = useState(false);
   
   // Edit and delete state
   const [editingExperience, setEditingExperience] = useState<typeof experiences[0] | null>(null);
@@ -920,6 +926,14 @@ export default function Dashboard() {
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="text-xl">Profile Information</CardTitle>
                 <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setShowPrivacyModal(true)}
+                  >
+                    <Shield className="w-4 h-4 mr-2" />
+                    Privacy
+                  </Button>
                   <Button variant="outline" size="sm">
                     <Eye className="w-4 h-4 mr-2" />
                     Preview
@@ -977,7 +991,7 @@ export default function Dashboard() {
                     </p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-700">Phone</label>
+                    <label className="text-medium text-gray-700">Phone</label>
                     <p className="text-gray-900">{user.phone || 'Not specified'}</p>
                   </div>
                   {user.linkedinUrl && (
@@ -1311,10 +1325,15 @@ export default function Dashboard() {
             </Card>
           </div>
 
-          {/* Right Sidebar */}
-          <div className="sidebar-sticky">
-            <DashboardSidebar user={user} />
-          </div>
+                                          {/* Right Sidebar */}
+            <div className="sidebar-sticky">
+              <DashboardSidebar 
+                user={user} 
+                onOpenPrivacyModal={() => setShowPrivacyModal(true)}
+                onOpenDomainModal={() => setShowDomainModal(true)}
+                onOpenThemeModal={() => setShowThemeModal(true)}
+              />
+            </div>
         </div>
       </div>
 
@@ -1539,6 +1558,24 @@ export default function Dashboard() {
         confirmText="Yes, Delete"
         cancelText="Cancel"
         variant="danger"
+      />
+
+      {/* Privacy Settings Modal */}
+      <PrivacySettingsModal
+        isOpen={showPrivacyModal}
+        onClose={() => setShowPrivacyModal(false)}
+      />
+
+      {/* Custom Domain Modal */}
+      <CustomDomainModal
+        isOpen={showDomainModal}
+        onClose={() => setShowDomainModal(false)}
+      />
+
+      {/* Theme Styling Modal */}
+      <ThemeStylingModal
+        isOpen={showThemeModal}
+        onClose={() => setShowThemeModal(false)}
       />
     </div>
   );

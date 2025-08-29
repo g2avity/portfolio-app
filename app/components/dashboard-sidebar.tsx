@@ -24,9 +24,12 @@ interface DashboardSidebarProps {
     portfolioSlug: string | null;
     isPublic: boolean;
   };
+  onOpenPrivacyModal?: () => void;
+  onOpenDomainModal?: () => void;
+  onOpenThemeModal?: () => void;
 }
 
-export function DashboardSidebar({ user }: DashboardSidebarProps) {
+export function DashboardSidebar({ user, onOpenPrivacyModal, onOpenDomainModal, onOpenThemeModal }: DashboardSidebarProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   const sidebarItems = [
@@ -34,7 +37,7 @@ export function DashboardSidebar({ user }: DashboardSidebarProps) {
       title: "Account Settings",
       icon: User,
       items: [
-        { label: "Profile Information", href: "#profile", icon: User },
+        { label: "Account Information", href: "/account", icon: User },
         { label: "Account Security", href: "#security", icon: Shield },
         { label: "Email Preferences", href: "#email", icon: User },
       ]
@@ -76,7 +79,7 @@ export function DashboardSidebar({ user }: DashboardSidebarProps) {
               <SheetTitle>Dashboard Settings</SheetTitle>
             </SheetHeader>
             <div className="mt-6">
-              <DashboardSidebarContent user={user} onItemClick={() => setIsOpen(false)} />
+              <DashboardSidebarContent user={user} onItemClick={() => setIsOpen(false)} onOpenPrivacyModal={onOpenPrivacyModal} onOpenDomainModal={onOpenDomainModal} onOpenThemeModal={onOpenThemeModal} />
             </div>
           </SheetContent>
         </Sheet>
@@ -85,7 +88,7 @@ export function DashboardSidebar({ user }: DashboardSidebarProps) {
       {/* Desktop Sidebar */}
       <div className="hidden lg:block w-80 flex-shrink-0">
         <div className="sticky top-6">
-          <DashboardSidebarContent user={user} />
+          <DashboardSidebarContent user={user} onOpenPrivacyModal={onOpenPrivacyModal} onOpenDomainModal={onOpenDomainModal} onOpenThemeModal={onOpenThemeModal} />
         </div>
       </div>
     </>
@@ -94,28 +97,34 @@ export function DashboardSidebar({ user }: DashboardSidebarProps) {
 
 function DashboardSidebarContent({ 
   user, 
-  onItemClick 
+  onItemClick,
+  onOpenPrivacyModal,
+  onOpenDomainModal,
+  onOpenThemeModal
 }: { 
   user: DashboardSidebarProps['user']; 
   onItemClick?: () => void;
+  onOpenPrivacyModal?: () => void;
+  onOpenDomainModal?: () => void;
+  onOpenThemeModal?: () => void;
 }) {
   const sidebarItems = [
     {
       title: "Account Settings",
       icon: User,
       items: [
-        { label: "Profile Information", href: "#profile", icon: User },
-        { label: "Account Security", href: "#security", icon: Shield },
-        { label: "Email Preferences", href: "#email", icon: User },
+        { label: "Account Information", href: "/account", icon: User },
+        { label: "Account Security", href: "/account/security", icon: Shield },
+        { label: "Email Preferences", href: "/account/email", icon: User },
       ]
     },
     {
       title: "Portfolio Settings",
       icon: Palette,
       items: [
-        { label: "Visibility & Privacy", href: "#visibility", icon: Eye },
-        { label: "Custom Domain", href: "#domain", icon: Link },
-        { label: "Theme & Styling", href: "#theme", icon: Palette },
+        { label: "Visibility & Privacy", icon: Eye, action: "privacy" },
+        { label: "Custom Domain", icon: Link, action: "domain" },
+        { label: "Theme & Styling", icon: Palette, action: "theme" },
         { label: "Section Ordering", href: "#sections", icon: Palette },
       ]
     },
@@ -185,13 +194,42 @@ function DashboardSidebarContent({
           <CardContent className="space-y-2">
             {section.items.map((item) => (
               <Button
-                key={item.href}
+                key={item.href || item.action || item.label}
                 variant="ghost"
                 size="sm"
                 className="w-full justify-start h-9 px-3"
                 onClick={() => {
-                  // TODO: Implement navigation to settings pages
-                  console.log(`Navigate to ${item.href}`);
+                  if (item.action === "privacy") {
+                    // Open privacy modal
+                    onOpenPrivacyModal?.();
+                    // Don't call onItemClick for modal actions to avoid closing mobile sidebar
+                    return;
+                  } else if (item.action === "domain") {
+                    // Open custom domain modal
+                    onOpenDomainModal?.();
+                    // Don't call onItemClick for modal actions to avoid closing mobile sidebar
+                    return;
+                  } else if (item.action === "theme") {
+                    // Open theme styling modal
+                    onOpenThemeModal?.();
+                    // Don't call onItemClick for modal actions to avoid closing mobile sidebar
+                    return;
+                  } else if (item.href === "/account") {
+                    // Navigate to account route
+                    window.location.href = item.href;
+                  } else if (item.href === "/account/security") {
+                    // Navigate to security route with state indicating we came from dashboard
+                    // We'll use sessionStorage for now since we're using window.location
+                    sessionStorage.setItem('securityFrom', 'dashboard');
+                    window.location.href = item.href;
+                  } else if (item.href === "/account/email") {
+                    // Navigate to email route with state indicating we came from dashboard
+                    sessionStorage.setItem('emailFrom', 'dashboard');
+                    window.location.href = item.href;
+                  } else {
+                    // TODO: Implement navigation to other settings pages
+                    console.log(`Navigate to ${item.href}`);
+                  }
                   onItemClick?.();
                 }}
               >
@@ -224,3 +262,5 @@ function DashboardSidebarContent({
     </div>
   );
 }
+
+
