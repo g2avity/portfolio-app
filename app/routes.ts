@@ -8,6 +8,9 @@ export default [
   route("/login", "routes/login.tsx"),
   route("/register", "routes/register.tsx"),
   route("/dashboard", "routes/dashboard.tsx"),
+  route("/account", "routes/account.tsx"),
+  route("/account/security", "routes/account.security.tsx"),
+  route("/account/email", "routes/account.email.tsx"),
   route("/logout", "routes/logout.tsx"),
   route("/auth/google", "routes/auth.google.tsx"),
   route("/auth/google/callback", "routes/auth.google.callback.tsx")
