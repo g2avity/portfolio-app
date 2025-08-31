@@ -216,11 +216,107 @@ body {
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+/* Portfolio Theme System - CSS Variables */
+:root {
+  /* Light Theme Colors */
+  --bg-primary: #f9fafb;        /* Page background - light gray */
+  --bg-secondary: #ffffff;       /* Secondary background - white */
+  --bg-card: #ffffff;            /* Card background - white */
+  --bg-card-header: #f8fafc;     /* Card header - very light gray */
+  --bg-card-content: #ffffff;    /* Card content - white */
+  --bg-sidebar: #ffffff;         /* Sidebar background - white */
+  --bg-navbar: #ffffff;          /* Navbar background - white */
+  --bg-modal: #ffffff;           /* Modal background - white */
+  
+  /* Borders and Dividers */
+  --border-color: #e5e7eb;       /* Light gray borders */
+  --border-light: #f3f4f6;       /* Very light borders */
+  --divider-color: #f3f4f6;      /* Divider lines */
+  
+  /* Text Colors */
+  --text-primary: #111827;       /* Main text - dark gray */
+  --text-secondary: #6b7280;     /* Secondary text - medium gray */
+  --text-muted: #9ca3af;         /* Muted text - light gray */
+  --text-inverse: #ffffff;       /* Inverse text - white */
+  
+  /* Interactive Elements */
+  --hover-bg: #f9fafb;           /* Hover background */
+  --focus-ring: #3b82f6;         /* Focus ring - blue */
+  --link-hover: #2563eb;         /* Link hover color - darker blue */
+  --shimmer-color: rgba(0, 0, 0, 0.15);  /* Shimmer effect - black with low transparency for light mode */
+  
+  /* Status Colors */
+  --success-bg: #f0fdf4;         /* Success background */
+  --success-text: #166534;       /* Success text */
+  --warning-bg: #fffbeb;         /* Warning background */
+  --warning-text: #92400e;       /* Warning text */
+  --error-bg: #fef2f2;           /* Error background */
+  --error-text: #dc2626;         /* Error text */
+}
+
+.dark {
+  /* Dark Theme Colors - Much Darker, Modern Approach */
+  --bg-primary: #0a0a0a;         /* Page background - true black */
+  --bg-secondary: #0f0f0f;       /* Secondary background - very dark */
+  --bg-card: #1a1a1a;            /* Card background - dark charcoal */
+  --bg-card-header: #1a1a1a;     /* Card header - same as card */
+  --bg-card-content: #1a1a1a;    /* Card content - same as card */
+  --bg-sidebar: #0f0f0f;         /* Sidebar background - very dark */
+  --bg-navbar: #0a0a0a;          /* Navbar background - true black */
+  --bg-modal: #0f0f0f;           /* Modal background - very dark */
+  
+  /* Borders and Dividers */
+  --border-color: #2a2a2a;       /* Dark borders - subtle contrast */
+  --border-light: #1a1a1a;       /* Light borders - minimal contrast */
+  --divider-color: #1a1a1a;      /* Divider lines */
+  
+  /* Text Colors - High Contrast for Readability */
+  --text-primary: #ffffff;       /* Main text - pure white */
+  --text-secondary: #e5e5e5;     /* Secondary text - very light gray */
+  --text-muted: #a3a3a3;         /* Muted text - medium light gray */
+  --text-inverse: #0a0a0a;       /* Inverse text - true black */
+  
+  /* Interactive Elements */
+  --hover-bg: #2a2a2a;           /* Hover background - subtle highlight */
+  --focus-ring: #3b82f6;         /* Focus ring - bright blue */
+  --link-hover: #60a5fa;         /* Link hover color - bright blue */
+  --shimmer-color: rgba(0, 0, 0, 0.3);  /* Shimmer effect - black with transparency */
+  
+  /* Status Colors */
+  --success-bg: #064e3b;         /* Success background */
+  --success-text: #6ee7b7;       /* Success text */
+  --warning-bg: #451a03;         /* Warning background */
+  --warning-text: #fbbf24;       /* Warning text */
+  --error-bg: #450a0a;           /* Error background */
+  --error-text: #fca5a5;         /* Error text */
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
   body {
     @apply bg-background text-foreground;
+  }
+  
+  /* Smooth theme transitions to prevent flashing */
+  * {
+    transition: background-color 0.2s ease-in-out, 
+                color 0.2s ease-in-out, 
+                border-color 0.2s ease-in-out;
+  }
+  
+  /* Global Theme Text Override - Ensure ALL text uses CSS variables */
+  * {
+    color: var(--text-primary);
+  }
+  
+  /* Override any hardcoded Tailwind text colors */
+  .text-gray-900, .text-gray-800, .text-gray-700, .text-gray-600, .text-gray-500 {
+    color: var(--text-primary) !important;
+  }
+  
+  .text-gray-400, .text-gray-300, .text-gray-200, .text-gray-100 {
+    color: var(--text-secondary) !important;
   }
 }

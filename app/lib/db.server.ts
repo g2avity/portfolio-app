@@ -1,5 +1,6 @@
 import bcrypt from "bcrypt";
 import { singleton } from "./singleton";
+import { createPortfolioConfig } from "./portfolio-config.server";
 
 async function getPrismaClient() {
   const { PrismaClient } = await import("@prisma/client");
@@ -28,7 +29,7 @@ async function getPrismaClient() {
   return client;
 }
 
-const prisma = singleton("prisma", getPrismaClient);
+export const prisma = singleton("prisma", getPrismaClient);
 
 export interface CreateUserData {
   username: string;
@@ -117,6 +118,30 @@ export async function createUser(userData: CreateUserData): Promise<User> {
       updatedAt: true,
     }
   });
+  
+  // Create default portfolio configuration for the new user
+  try {
+    await createPortfolioConfig({
+      userId: user.id,
+      sectionOrder: [
+        { id: 'profile', type: 'profile', order: 1, isVisible: true, layout: 'default' },
+        { id: 'experiences', type: 'experiences', order: 2, isVisible: true, layout: 'default' },
+        { id: 'skills', type: 'skills', order: 3, isVisible: true, layout: 'default' }
+      ],
+      layoutType: 'default',
+      theme: 'light',
+      primaryColor: '#3b82f6',
+      fontFamily: 'Inter',
+      spacing: 'comfortable',
+      showProfileImage: true,
+      showSocialLinks: true,
+      showContactInfo: true,
+      animationsEnabled: true
+    });
+  } catch (error) {
+    console.error('Failed to create default portfolio config for user:', user.id, error);
+    // Don't fail user creation if portfolio config creation fails
+  }
   
   return user;
 }
@@ -398,6 +423,30 @@ export async function findOrCreateUserFromOAuth(params: {
       updatedAt: true,
     },
   });
+
+  // Create default portfolio configuration for the new OAuth user
+  try {
+    await createPortfolioConfig({
+      userId: newUser.id,
+      sectionOrder: [
+        { id: 'profile', type: 'profile', order: 1, isVisible: true, layout: 'default' },
+        { id: 'experiences', type: 'experiences', order: 2, isVisible: true, layout: 'default' },
+        { id: 'skills', type: 'skills', order: 3, isVisible: true, layout: 'default' }
+      ],
+      layoutType: 'default',
+      theme: 'light',
+      primaryColor: '#3b82f6',
+      fontFamily: 'Inter',
+      spacing: 'comfortable',
+      showProfileImage: true,
+      showSocialLinks: true,
+      showContactInfo: true,
+      animationsEnabled: true
+    });
+  } catch (error) {
+    console.error('Failed to create default portfolio config for OAuth user:', newUser.id, error);
+    // Don't fail user creation if portfolio config creation fails
+  }
 
   return newUser;
 }
@@ -1087,6 +1136,8 @@ export async function getPublicCustomSections(portfolioSlug: string): Promise<Cu
   return customSections;
 }
 
+
+
 // Copy template to create user's custom section
 export async function copyTemplateToUserSection(
   userId: string,
@@ -1137,8 +1188,8 @@ export async function copyTemplateToUserSection(
       description: description || null,
       isPublic: true,
       order: nextOrder,
-      layout: template.content.layout || 'default',
-      content: template.content,
+      layout: (template.content as any)?.layout || 'default',
+      content: template.content as any,
     },
     select: {
       id: true,

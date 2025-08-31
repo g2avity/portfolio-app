@@ -97,8 +97,8 @@ export default function ThemeStylingModal({ isOpen, onClose }: ThemeStylingModal
       root.classList.remove('dark');
     }
     
-    // Apply primary color
-    root.style.setProperty('--primary-color', theme.primaryColor);
+    // Apply primary color to CSS variables
+    root.style.setProperty('--focus-ring', theme.primaryColor);
     
     // Apply font family
     root.style.setProperty('--font-family', theme.fontFamily);
@@ -144,12 +144,16 @@ export default function ThemeStylingModal({ isOpen, onClose }: ThemeStylingModal
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl max-w-5xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="rounded-lg shadow-xl max-w-5xl w-full max-h-[90vh] overflow-y-auto" style={{ 
+        backgroundColor: 'var(--bg-modal)' 
+      }}>
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-between p-6 border-b" style={{ 
+          borderColor: 'var(--border-color)' 
+        }}>
           <div className="flex items-center gap-3">
             <Palette className="w-6 h-6 text-blue-600" />
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Theme & Styling</h2>
+            <h2 className="text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>Theme & Styling</h2>
           </div>
           <div className="flex items-center gap-2">
             <Button
@@ -163,9 +167,10 @@ export default function ThemeStylingModal({ isOpen, onClose }: ThemeStylingModal
             </Button>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+              className="transition-colors"
+              style={{ color: 'var(--text-muted)' }}
             >
-              <X className="w-5 h-5" />
+              <X className="w-5 h-4" />
             </button>
           </div>
         </div>
@@ -173,10 +178,10 @@ export default function ThemeStylingModal({ isOpen, onClose }: ThemeStylingModal
         {/* Content */}
         <div className="p-6 space-y-6">
           {/* Color Scheme */}
-          <Card className="dark:bg-gray-800 dark:border-gray-700">
+          <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-lg flex items-center gap-2 dark:text-white">
-                <Sun className="w-5 h-5 text-yellow-600" />
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Sun className="w-5 h-4 text-yellow-600" />
                 Color Scheme
               </CardTitle>
             </CardHeader>
@@ -211,10 +216,10 @@ export default function ThemeStylingModal({ isOpen, onClose }: ThemeStylingModal
           </Card>
 
           {/* Primary Color */}
-          <Card className="dark:bg-gray-800 dark:border-gray-700">
+          <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-lg flex items-center gap-2 dark:text-white">
-                <ColorPalette className="w-5 h-5 text-purple-600" />
+              <CardTitle className="text-lg flex items-center gap-2">
+                <ColorPalette className="w-5 h-4 text-purple-600" />
                 Primary Color
               </CardTitle>
             </CardHeader>
@@ -253,10 +258,10 @@ export default function ThemeStylingModal({ isOpen, onClose }: ThemeStylingModal
           </Card>
 
           {/* Typography */}
-          <Card className="dark:bg-gray-800 dark:border-gray-700">
+          <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-lg flex items-center gap-2 dark:text-white">
-                <Type className="w-5 h-5 text-green-600" />
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Type className="w-5 h-4 text-green-600" />
                 Typography
               </CardTitle>
             </CardHeader>
@@ -282,10 +287,10 @@ export default function ThemeStylingModal({ isOpen, onClose }: ThemeStylingModal
           </Card>
 
           {/* Layout & Spacing */}
-          <Card className="dark:bg-gray-800 dark:border-gray-700">
+          <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-lg flex items-center gap-2 dark:text-white">
-                <Layout className="w-5 h-5 text-orange-600" />
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Layout className="w-5 h-4 text-orange-600" />
                 Layout & Spacing
               </CardTitle>
             </CardHeader>
@@ -335,10 +340,10 @@ export default function ThemeStylingModal({ isOpen, onClose }: ThemeStylingModal
           </Card>
 
           {/* Future Features Preview */}
-          <Card className="dark:bg-gray-800 dark:border-gray-700 border-dashed">
+          <Card className="border-dashed">
             <CardHeader className="pb-3">
-              <CardTitle className="text-lg flex items-center gap-2 dark:text-white">
-                <Sparkles className="w-5 h-5 text-purple-600" />
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Sparkles className="w-5 h-4 text-purple-600" />
                 Coming Soon
               </CardTitle>
             </CardHeader>
@@ -371,7 +376,10 @@ export default function ThemeStylingModal({ isOpen, onClose }: ThemeStylingModal
         </div>
 
         {/* Footer */}
-        <div className="flex justify-between items-center p-6 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+        <div className="flex justify-between items-center p-6 border-t" style={{ 
+          borderColor: 'var(--border-color)',
+          backgroundColor: 'var(--bg-card-header)'
+        }}>
           <Button variant="outline" onClick={handleReset}>
             <RotateCcw className="w-4 h-4 mr-2" />
             Reset to Defaults

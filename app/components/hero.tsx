@@ -4,18 +4,18 @@ import { Link } from "react-router";
 
 export function Hero() {
   return (
-    <main className="flex items-center justify-center min-h-screen bg-gray-50">
+    <main className="flex items-center justify-center min-h-screen" style={{ backgroundColor: 'var(--bg-primary)' }}>
         <div className="container mx-auto px-4 py-16">
           {/* Hero Cards - Side by Side */}
           <div className="flex flex-col lg:flex-row gap-8 items-stretch justify-center max-w-6xl mx-auto">
             {/* Portfolios Title Card */}
             <Card className="lg:w-80 shadow-lg">
               <CardContent className="p-8 text-center">
-                <h1 className="text-4xl font-bold text-gray-900 mb-4">
+                <h1 className="text-4xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>
                   Portfolios
                 </h1>
                 <div className="space-y-3">
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
                     by
                   </p>
                   <div className="flex justify-center">
@@ -28,24 +28,33 @@ export function Hero() {
             {/* Service Description Card */}
             <Card className="flex-1 shadow-lg">
               <CardContent className="p-8 space-y-6">
-                <h2 className="text-2xl font-semibold text-gray-900">
+                <h2 className="text-2xl font-semibold" style={{ color: 'var(--text-primary)' }}>
                   Professional Portfolio Platform
                 </h2>
-                <p className="text-gray-700 leading-relaxed">
+                <p className="leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
                   Create and showcase your professional portfolio with our modern, 
                   customizable platform. Share your experience, skills, and achievements 
                   in a beautifully designed, mobile-responsive format.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4">
                   <Link to="/portfolios">
-                    <Button className="relative overflow-hidden bg-gray-800 hover:bg-gray-700 text-white transition-all duration-300 group">
-                      <span className="relative z-10">Browse Portfolios</span>
-                      <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:translate-x-full transition-transform duration-1000 ease-out"></div>
+                    <Button variant="outline" className="relative overflow-hidden transition-all duration-300 group" style={{ 
+                      borderColor: 'var(--border-color) !important', 
+                      color: 'var(--text-secondary) !important',
+                      backgroundColor: 'var(--bg-card) !important'
+                    }}>
+                      <span className="relative z-10" style={{ color: 'var(--text-secondary) !important' }}>Browse Portfolios</span>
+                      <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-[var(--shimmer-color)] to-transparent group-hover:translate-x-full transition-transform duration-1000 ease-out"></div>
                     </Button>
                   </Link>
                   <Link to="/register">
-                    <Button variant="outline" className="border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400">
-                      Get Started
+                    <Button variant="outline" className="relative overflow-hidden transition-all duration-300 group" style={{ 
+                      borderColor: 'var(--border-color) !important', 
+                      color: 'var(--text-secondary) !important',
+                      backgroundColor: 'var(--bg-card) !important'
+                    }}>
+                      <span className="relative z-10" style={{ color: 'var(--text-secondary) !important' }}>Get Started</span>
+                      <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-[var(--shimmer-color)] to-transparent group-hover:translate-x-full transition-transform duration-1000 ease-out"></div>
                     </Button>
                   </Link>
                 </div>

@@ -92,11 +92,13 @@ function TruncatedField({
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >
-        <div className="text-sm text-gray-800">
+        <div className="text-sm" style={{ color: 'var(--text-primary)' }}>
           <RichTextDisplay content={truncatedContent} />
         </div>
         {/* Full-width gradient fade overlay at bottom */}
-        <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-gray-50 to-transparent" />
+        <div className="absolute bottom-0 left-0 right-0 h-8" style={{ 
+          background: 'linear-gradient(to top, var(--bg-card), transparent)' 
+        }} />
         
         {/* Custom hover preview - rendered via portal to break out of container constraints */}
         {isHovered && createPortal(
@@ -113,23 +115,24 @@ function TruncatedField({
               minWidth: '300px',
               maxHeight: '80vh',
               overflowY: 'auto',
-              backgroundColor: 'white',
-              border: '1px solid #e5e7eb',
+              backgroundColor: 'var(--bg-modal)',
+              border: '1px solid var(--border-color)',
               borderRadius: '0.5rem',
               boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
               padding: '1rem'
             }}
           >
             <div className="flex justify-between items-start mb-3">
-              <h4 className="text-sm font-medium text-gray-900">Full Content Preview</h4>
+              <h4 className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Full Content Preview</h4>
               <button 
                 onClick={() => setIsHovered(false)}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
+                className="transition-colors"
+                style={{ color: 'var(--text-muted)' }}
               >
                 ✕
               </button>
             </div>
-            <div className="text-sm">
+            <div className="text-sm" style={{ color: 'var(--text-primary)' }}>
               <RichTextDisplay content={content} />
             </div>
           </div>,
@@ -215,7 +218,10 @@ export function CustomSectionDisplay({
   // Generic entry renderer with collapsible functionality
   const renderGenericEntry = (entry: any, index: number) => {
     return (
-      <div key={entry.id || index} className="border rounded-lg p-4 bg-gray-50">
+      <div key={entry.id || index} className="border rounded-lg p-4" style={{ 
+        borderColor: 'var(--border-color)', 
+        backgroundColor: 'var(--bg-card-content)' 
+      }}>
         <div className="flex justify-between items-start gap-4">
           <div className="flex-1 space-y-3 min-w-0 card-content-constrained">
             {/* Render header fields (title, name, heading) */}
@@ -224,7 +230,7 @@ export function CustomSectionDisplay({
               if (!headerValue) return null;
               
               return (
-                <h4 key={headerField} className="font-medium text-gray-900">
+                <h4 key={headerField} className="font-medium" style={{ color: 'var(--text-primary)' }}>
                   {headerValue}
                 </h4>
               );
@@ -242,7 +248,7 @@ export function CustomSectionDisplay({
                   
                   return (
                     <div key={fieldName}>
-                      <label className="text-xs font-medium text-gray-600 uppercase tracking-wide">
+                      <label className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--text-secondary)' }}>
                         {fieldName.charAt(0).toUpperCase() + fieldName.slice(1)}
                       </label>
                       <TruncatedField 
@@ -256,7 +262,7 @@ export function CustomSectionDisplay({
                 })}
               </div>
               {entry.createdAt && (
-                <p className="text-xs text-gray-500 mt-2">
+                <p className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>
                   Created: {new Date(entry.createdAt).toLocaleDateString()}
                 </p>
               )}
@@ -340,22 +346,34 @@ export function CustomSectionDisplay({
   };
 
   return (
-    <div className="border rounded-lg p-4 bg-white content-transition">
+    <div className="border rounded-lg p-4 content-transition" style={{ 
+      borderColor: 'var(--border-color)', 
+      backgroundColor: 'var(--bg-card)' 
+    }}>
       {/* Section Header */}
       <div className="flex justify-between items-start mb-4">
         <div className="flex-1">
-          <h3 className="font-medium text-gray-900">{section.title}</h3>
+          <h3 className="font-medium" style={{ color: 'var(--text-primary)' }}>{section.title}</h3>
           {section.description && (
-            <p className="text-gray-600 mt-1">{section.description}</p>
+            <p className="mt-1" style={{ color: 'var(--text-secondary)' }}>{section.description}</p>
           )}
           <div className="flex gap-2 mt-2">
-            <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm">
+            <span className="px-2 py-1 rounded-full text-sm" style={{ 
+              backgroundColor: 'var(--success-bg)', 
+              color: 'var(--success-text)' 
+            }}>
               {section.type}
             </span>
-            <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-sm">
+            <span className="px-2 py-1 rounded-full text-sm" style={{ 
+              backgroundColor: 'var(--success-bg)', 
+              color: 'var(--success-text)' 
+            }}>
               {section.layout}
             </span>
-            <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded-full text-sm">
+            <span className="px-2 py-1 rounded-full text-sm" style={{ 
+              backgroundColor: 'var(--success-bg)', 
+              color: 'var(--success-text)' 
+            }}>
               {entries.length} entries
             </span>
           </div>
@@ -396,16 +414,19 @@ export function CustomSectionDisplay({
               onClick={() => onAddEntry(section.id)}
               className="group cursor-pointer"
             >
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-3 transition-all duration-200 hover:border-blue-400 hover:bg-blue-50">
+              <div className="border-2 border-dashed rounded-lg p-3 transition-all duration-200" style={{ 
+                borderColor: 'var(--border-color)',
+                backgroundColor: 'var(--bg-card-content)'
+              }}>
                 <div className="flex items-center gap-2 justify-center">
-                  <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center group-hover:bg-blue-100 transition-colors flex-shrink-0">
-                    <Plus className="w-4 h-4 text-gray-400 group-hover:text-blue-500" />
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center transition-colors flex-shrink-0" style={{ backgroundColor: 'var(--border-light)' }}>
+                    <Plus className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
                   </div>
                   <div className="text-left">
-                    <p className="font-medium text-gray-700 group-hover:text-blue-700 text-sm">
+                    <p className="font-medium text-sm" style={{ color: 'var(--text-primary)' }}>
                       Add Entry
                     </p>
-                    <p className="text-xs text-gray-500 group-hover:text-blue-600">
+                    <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
                       Click to add another entry to this section
                     </p>
                   </div>
@@ -415,7 +436,7 @@ export function CustomSectionDisplay({
           </>
         ) : (
           /* Empty state for entries */
-          <div className="text-center py-6 text-gray-500">
+          <div className="text-center py-6" style={{ color: 'var(--text-muted)' }}>
             <p className="text-sm">No entries added yet</p>
             <p className="text-xs mt-1">Start adding content to this section</p>
             
@@ -424,16 +445,19 @@ export function CustomSectionDisplay({
               onClick={() => onAddEntry(section.id)}
               className="group cursor-pointer mt-3"
             >
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-3 transition-all duration-200 hover:border-blue-400 hover:bg-blue-50">
+              <div className="border-2 border-dashed rounded-lg p-3 transition-all duration-200" style={{ 
+                borderColor: 'var(--border-color)',
+                backgroundColor: 'var(--bg-card-content)'
+              }}>
                 <div className="flex items-center gap-2 justify-center">
-                  <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center group-hover:bg-blue-100 transition-colors flex-shrink-0">
-                    <Plus className="w-4 h-4 text-gray-400 group-hover:text-blue-500" />
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center transition-colors flex-shrink-0" style={{ backgroundColor: 'var(--border-light)' }}>
+                    <Plus className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
                   </div>
                   <div className="text-left">
-                    <p className="font-medium text-gray-700 group-hover:text-blue-700 text-sm">
+                    <p className="font-medium text-sm" style={{ color: 'var(--text-primary)' }}>
                       Add Your First Entry
                     </p>
-                    <p className="text-xs text-gray-500 group-hover:text-blue-600">
+                    <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
                       Click to create your first entry
                     </p>
                   </div>

@@ -15,6 +15,19 @@ import {
 } from "lucide-react";
 import { Link as RouterLink } from "react-router";
 
+interface SidebarItem {
+  label: string;
+  icon: any;
+  href?: string;
+  action?: string;
+}
+
+interface SidebarSection {
+  title: string;
+  icon: any;
+  items: SidebarItem[];
+}
+
 interface DashboardSidebarProps {
   user: {
     id: string;
@@ -23,45 +36,16 @@ interface DashboardSidebarProps {
     email: string;
     portfolioSlug: string | null;
     isPublic: boolean;
+    avatarUrl: string | null;
   };
   onOpenPrivacyModal?: () => void;
   onOpenDomainModal?: () => void;
   onOpenThemeModal?: () => void;
+  onOpenSectionOrderingModal?: () => void;
 }
 
-export function DashboardSidebar({ user, onOpenPrivacyModal, onOpenDomainModal, onOpenThemeModal }: DashboardSidebarProps) {
+export function DashboardSidebar({ user, onOpenPrivacyModal, onOpenDomainModal, onOpenThemeModal, onOpenSectionOrderingModal }: DashboardSidebarProps) {
   const [isOpen, setIsOpen] = useState(false);
-
-  const sidebarItems = [
-    {
-      title: "Account Settings",
-      icon: User,
-      items: [
-        { label: "Account Information", href: "/account", icon: User },
-        { label: "Account Security", href: "#security", icon: Shield },
-        { label: "Email Preferences", href: "#email", icon: User },
-      ]
-    },
-    {
-      title: "Portfolio Settings",
-      icon: Palette,
-      items: [
-        { label: "Visibility & Privacy", href: "#visibility", icon: Eye },
-        { label: "Custom Domain", href: "#domain", icon: Link },
-        { label: "Theme & Styling", href: "#theme", icon: Palette },
-        { label: "Section Ordering", href: "#sections", icon: Palette },
-      ]
-    },
-    {
-      title: "Content Management",
-      icon: Settings,
-      items: [
-        { label: "Content Sections", href: "#sections", icon: Settings },
-        { label: "Media Library", href: "#media", icon: Settings },
-        { label: "SEO Settings", href: "#seo", icon: Settings },
-      ]
-    }
-  ];
 
   return (
     <>
@@ -79,7 +63,7 @@ export function DashboardSidebar({ user, onOpenPrivacyModal, onOpenDomainModal, 
               <SheetTitle>Dashboard Settings</SheetTitle>
             </SheetHeader>
             <div className="mt-6">
-              <DashboardSidebarContent user={user} onItemClick={() => setIsOpen(false)} onOpenPrivacyModal={onOpenPrivacyModal} onOpenDomainModal={onOpenDomainModal} onOpenThemeModal={onOpenThemeModal} />
+              <DashboardSidebarContent user={user} onItemClick={() => setIsOpen(false)} onOpenPrivacyModal={onOpenPrivacyModal} onOpenDomainModal={onOpenDomainModal} onOpenThemeModal={onOpenThemeModal} onOpenSectionOrderingModal={onOpenSectionOrderingModal} />
             </div>
           </SheetContent>
         </Sheet>
@@ -88,7 +72,7 @@ export function DashboardSidebar({ user, onOpenPrivacyModal, onOpenDomainModal, 
       {/* Desktop Sidebar */}
       <div className="hidden lg:block w-80 flex-shrink-0">
         <div className="sticky top-6">
-          <DashboardSidebarContent user={user} onOpenPrivacyModal={onOpenPrivacyModal} onOpenDomainModal={onOpenDomainModal} onOpenThemeModal={onOpenThemeModal} />
+          <DashboardSidebarContent user={user} onOpenPrivacyModal={onOpenPrivacyModal} onOpenDomainModal={onOpenDomainModal} onOpenThemeModal={onOpenThemeModal} onOpenSectionOrderingModal={onOpenSectionOrderingModal} />
         </div>
       </div>
     </>
@@ -100,15 +84,17 @@ function DashboardSidebarContent({
   onItemClick,
   onOpenPrivacyModal,
   onOpenDomainModal,
-  onOpenThemeModal
+  onOpenThemeModal,
+  onOpenSectionOrderingModal
 }: { 
   user: DashboardSidebarProps['user']; 
   onItemClick?: () => void;
   onOpenPrivacyModal?: () => void;
   onOpenDomainModal?: () => void;
   onOpenThemeModal?: () => void;
+  onOpenSectionOrderingModal?: () => void;
 }) {
-  const sidebarItems = [
+  const sidebarItems: SidebarSection[] = [
     {
       title: "Account Settings",
       icon: User,
@@ -125,7 +111,7 @@ function DashboardSidebarContent({
         { label: "Visibility & Privacy", icon: Eye, action: "privacy" },
         { label: "Custom Domain", icon: Link, action: "domain" },
         { label: "Theme & Styling", icon: Palette, action: "theme" },
-        { label: "Section Ordering", href: "#sections", icon: Palette },
+        { label: "Section Ordering", icon: Palette, action: "section-ordering" },
       ]
     },
     {
@@ -151,29 +137,44 @@ function DashboardSidebarContent({
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center">
-              <User className="w-6 h-6 text-gray-600" />
+            <div className="w-12 h-12 rounded-full flex items-center justify-center overflow-hidden" style={{ backgroundColor: 'var(--border-light)' }}>
+              {user.avatarUrl ? (
+                <img 
+                  src={user.avatarUrl} 
+                  alt={`${user.firstName} ${user.lastName}`}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    console.log("❌ Sidebar avatar failed to load:", user.avatarUrl);
+                    e.currentTarget.style.display = 'none';
+                  }}
+                  onLoad={() => console.log("✅ Sidebar avatar loaded successfully:", user.avatarUrl)}
+                />
+              ) : (
+                <User className="w-6 h-6" style={{ color: 'var(--text-muted)' }} />
+              )}
             </div>
             <div>
-              <p className="font-medium">{user.firstName} {user.lastName}</p>
-              <p className="text-sm text-gray-600">{user.email}</p>
+              <p className="font-medium" style={{ color: 'var(--text-primary)' }}>{user.firstName} {user.lastName}</p>
+              <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{user.email}</p>
             </div>
           </div>
-          <div className="pt-2 border-t">
+          <div className="pt-2 border-t" style={{ borderTopColor: 'var(--border-light)' }}>
             <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-600">Portfolio Status:</span>
-              <span className={`px-2 py-1 rounded-full text-xs ${
-                user.isPublic 
-                  ? 'bg-green-100 text-green-800' 
-                  : 'bg-gray-100 text-gray-800'
-              }`}>
+              <span style={{ color: 'var(--text-secondary)' }}>Portfolio Status:</span>
+              <span className="px-2 py-1 rounded-full text-xs" style={{ 
+                backgroundColor: user.isPublic ? 'var(--success-bg)' : 'var(--border-light)', 
+                color: user.isPublic ? 'var(--success-text)' : 'var(--text-secondary)' 
+              }}>
                 {user.isPublic ? 'Public' : 'Private'}
               </span>
             </div>
             {user.portfolioSlug && (
               <div className="flex items-center justify-between text-sm mt-1">
-                <span className="text-gray-600">Slug:</span>
-                <span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded">
+                <span style={{ color: 'var(--text-secondary)' }}>Slug:</span>
+                <span className="font-mono text-xs px-2 py-1 rounded" style={{ 
+                  backgroundColor: 'var(--border-light)',
+                  color: 'var(--text-primary)'
+                }}>
                   {user.portfolioSlug}
                 </span>
               </div>
@@ -212,6 +213,11 @@ function DashboardSidebarContent({
                   } else if (item.action === "theme") {
                     // Open theme styling modal
                     onOpenThemeModal?.();
+                    // Don't call onItemClick for modal actions to avoid closing mobile sidebar
+                    return;
+                  } else if (item.action === "section-ordering") {
+                    // Open section ordering modal
+                    onOpenSectionOrderingModal?.();
                     // Don't call onItemClick for modal actions to avoid closing mobile sidebar
                     return;
                   } else if (item.href === "/account") {

@@ -3,12 +3,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
+import { Modal } from "./ui/modal";
 import { 
   Globe, 
   Link, 
   CheckCircle, 
   AlertCircle, 
-  X, 
   ExternalLink,
   Info,
   Clock,
@@ -117,39 +117,23 @@ export default function CustomDomainModal({ isOpen, onClose }: CustomDomainModal
   const getStatusColor = (status: Domain['status']) => {
     switch (status) {
       case 'active':
-        return 'bg-green-100 text-green-800';
+        return 'var(--success-bg) var(--success-text)';
       case 'pending':
-        return 'bg-yellow-100 text-yellow-800';
+        return 'var(--warning-bg) var(--warning-text)';
       case 'verifying':
-        return 'bg-blue-100 text-blue-800';
+        return 'var(--focus-ring) var(--text-inverse)';
       case 'error':
-        return 'bg-red-100 text-red-800';
+        return 'var(--error-bg) var(--error-text)';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'var(--border-light) var(--text-secondary)';
     }
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b">
-          <div className="flex items-center gap-3">
-            <Globe className="w-6 h-6 text-blue-600" />
-            <h2 className="text-xl font-semibold text-gray-900">Custom Domain Management</h2>
-          </div>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Content */}
-        <div className="p-6 space-y-6">
+    <Modal isOpen={isOpen} onClose={onClose} title="Custom Domain Management" maxWidth="max-w-4xl">
+      <div className="space-y-6">
           {/* Add New Domain */}
           <Card>
             <CardHeader className="pb-3">
@@ -197,27 +181,33 @@ export default function CustomDomainModal({ isOpen, onClose }: CustomDomainModal
             </CardHeader>
             <CardContent>
               {domains.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  <Globe className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                <div className="text-center py-8" style={{ color: 'var(--text-muted)' }}>
+                  <Globe className="w-12 h-12 mx-auto mb-3" style={{ color: 'var(--text-muted)' }} />
                   <p>No domains configured yet</p>
                   <p className="text-sm">Add your first domain above to get started</p>
                 </div>
               ) : (
                 <div className="space-y-3">
                   {domains.map((domain) => (
-                    <div key={domain.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                    <div key={domain.id} className="flex items-center justify-between p-4 rounded-lg border" style={{ backgroundColor: 'var(--bg-card-content)', borderColor: 'var(--border-color)' }}>
                       <div className="flex items-center gap-3">
                         {getStatusIcon(domain.status)}
                         <div>
-                          <p className="font-medium text-gray-900">{domain.domain}</p>
-                          <div className="flex items-center gap-4 text-sm text-gray-600">
-                            <span className={`px-2 py-1 rounded-full text-xs ${getStatusColor(domain.status)}`}>
-                              {getStatusText(domain.status)}
-                            </span>
-                            <span>Added {domain.createdAt.toLocaleDateString()}</span>
-                            {domain.lastVerified && (
-                              <span>Verified {domain.lastVerified.toLocaleDateString()}</span>
-                            )}
+                                                      <p className="font-medium" style={{ color: 'var(--text-primary)' }}>{domain.domain}</p>
+                            <div className="flex items-center gap-4 text-sm" style={{ color: 'var(--text-secondary)' }}>
+                                                    <span 
+                          className="px-2 py-1 rounded-full text-xs"
+                          style={{
+                            backgroundColor: getStatusColor(domain.status).split(' ')[0],
+                            color: getStatusColor(domain.status).split(' ')[1]
+                          }}
+                        >
+                          {getStatusText(domain.status)}
+                        </span>
+                                                          <span style={{ color: 'var(--text-muted)' }}>Added {domain.createdAt.toLocaleDateString()}</span>
+                              {domain.lastVerified && (
+                                <span style={{ color: 'var(--text-muted)' }}>Verified {domain.lastVerified.toLocaleDateString()}</span>
+                              )}
                           </div>
                         </div>
                       </div>
@@ -245,7 +235,11 @@ export default function CustomDomainModal({ isOpen, onClose }: CustomDomainModal
                           variant="ghost"
                           size="sm"
                           onClick={() => handleRemoveDomain(domain.id)}
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          style={{
+                            color: 'var(--error-text)',
+                            backgroundColor: 'transparent'
+                          }}
+                          className="hover:bg-red-50"
                         >
                           Remove
                         </Button>
@@ -261,38 +255,38 @@ export default function CustomDomainModal({ isOpen, onClose }: CustomDomainModal
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-lg flex items-center gap-2">
-                <Info className="w-5 h-5 text-blue-600" />
+                <Info className="w-5 h-5" style={{ color: 'var(--focus-ring)' }} />
                 How Custom Domains Work
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="text-center p-4 bg-blue-50 rounded-lg">
-                  <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <span className="text-2xl">1</span>
+                <div className="text-center p-4 rounded-lg border" style={{ backgroundColor: 'var(--success-bg)', borderColor: 'var(--border-color)' }}>
+                  <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3" style={{ backgroundColor: 'var(--border-light)' }}>
+                    <span className="text-2xl" style={{ color: 'var(--text-primary)' }}>1</span>
                   </div>
-                  <h4 className="font-medium text-blue-900 mb-2">Add Your Domain</h4>
-                  <p className="text-sm text-blue-700">Enter your domain name in the field above</p>
+                  <h4 className="font-medium mb-2" style={{ color: 'var(--success-text)' }}>Add Your Domain</h4>
+                  <p className="text-sm" style={{ color: 'var(--success-text)' }}>Enter your domain name in the field above</p>
                 </div>
-                <div className="text-center p-4 bg-green-50 rounded-lg">
-                  <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <span className="text-2xl">2</span>
+                <div className="text-center p-4 rounded-lg border" style={{ backgroundColor: 'var(--success-bg)', borderColor: 'var(--border-color)' }}>
+                  <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3" style={{ backgroundColor: 'var(--border-light)' }}>
+                    <span className="text-2xl" style={{ color: 'var(--text-primary)' }}>2</span>
                   </div>
-                  <h4 className="font-medium text-green-900 mb-2">Automatic Setup</h4>
-                  <p className="text-sm text-green-700">Vercel handles DNS configuration and SSL certificates</p>
+                  <h4 className="font-medium mb-2" style={{ color: 'var(--success-text)' }}>Automatic Setup</h4>
+                  <p className="text-sm" style={{ color: 'var(--success-text)' }}>Vercel handles DNS configuration and SSL certificates</p>
                 </div>
-                <div className="text-center p-4 bg-purple-50 rounded-lg">
-                  <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <span className="text-2xl">3</span>
+                <div className="text-center p-4 rounded-lg border" style={{ backgroundColor: 'var(--success-bg)', borderColor: 'var(--border-color)' }}>
+                  <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3" style={{ backgroundColor: 'var(--border-light)' }}>
+                                         <span className="text-2xl" style={{ color: 'var(--text-primary)' }}>3</span>
                   </div>
-                  <h4 className="font-medium text-purple-900 mb-2">Go Live</h4>
-                  <p className="text-sm text-purple-700">Your portfolio is accessible at your custom domain</p>
+                  <h4 className="font-medium mb-2" style={{ color: 'var(--success-text)' }}>Go Live</h4>
+                  <p className="text-sm" style={{ color: 'var(--success-text)' }}>Your portfolio is accessible at your custom domain</p>
                 </div>
               </div>
               
-              <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-                <h4 className="font-medium text-gray-900 mb-2">What We Handle:</h4>
-                <ul className="text-sm text-gray-700 space-y-1">
+              <div className="mt-6 p-4 rounded-lg border" style={{ backgroundColor: 'var(--border-light)', borderColor: 'var(--border-color)' }}>
+                <h4 className="font-medium mb-2" style={{ color: 'var(--text-primary)' }}>What We Handle:</h4>
+                <ul className="text-sm space-y-1" style={{ color: 'var(--text-secondary)' }}>
                   <li>• DNS configuration and management</li>
                   <li>• SSL certificate provisioning</li>
                   <li>• CDN optimization through Vercel's edge network</li>
@@ -302,10 +296,9 @@ export default function CustomDomainModal({ isOpen, onClose }: CustomDomainModal
               </div>
             </CardContent>
           </Card>
-        </div>
 
         {/* Footer */}
-        <div className="flex justify-end gap-3 p-6 border-t bg-gray-50">
+        <div className="flex justify-end gap-3 pt-6 border-t" style={{ borderColor: 'var(--border-color)' }}>
           <Button variant="outline" onClick={onClose}>
             Close
           </Button>
@@ -318,6 +311,6 @@ export default function CustomDomainModal({ isOpen, onClose }: CustomDomainModal
           </Button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }

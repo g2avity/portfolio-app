@@ -25,7 +25,8 @@
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "db:seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
     "@curvenote/remix-auth-google": "^3.0.0",
@@ -70,6 +71,7 @@
     "eslint-plugin-react-hooks": "^5.0.0",
     "prisma": "^6.13.0",
     "tailwindcss": "^4.1.4",
+    "tsx": "^4.20.5",
     "tw-animate-css": "^1.3.6",
     "typescript": "^5.8.3",
     "vite": "^6.3.3",
