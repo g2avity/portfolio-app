@@ -16,7 +16,9 @@ import { ProfileForm } from "../components/profile-form";
 import PrivacySettingsModal from "../components/privacy-settings-modal";
 import CustomDomainModal from "../components/custom-domain-modal";
 import ThemeStylingModal from "../components/theme-styling-modal";
+import SectionOrderingModal from "../components/section-ordering-modal";
 import { getUserExperiences, getUserExperienceCount, createExperience, updateExperience, deleteExperience, getUserSkills, getUserSkillCount, createSkill, updateSkill, deleteSkill, updateUserProfile, getUserCustomSections, getUserCustomSectionCount, createCustomSection, updateCustomSection, deleteCustomSection } from "../lib/db.server";
+import { getPortfolioConfig, createPortfolioConfig, updatePortfolioConfig } from "../lib/portfolio-config.server";
 import { testBlobConnection } from "../lib/blob.server";
 import { redirect } from "react-router";
 import { RichTextDisplay } from "../components/rich-text-display";
@@ -36,15 +38,43 @@ export function ErrorBoundary({ error }: { error: unknown }) {
 export async function loader({ request }: LoaderFunctionArgs) {
   const user = await requireUser(request);
   
-  // Fetch real portfolio stats from database
-  const [experiences, experienceCount, skills, skillsCount, customSections, customSectionsCount] = await Promise.all([
+  // Fetch real portfolio stats and config from database
+  const [experiences, experienceCount, skills, skillsCount, customSections, customSectionsCount, portfolioConfig] = await Promise.all([
     getUserExperiences(user.id),
     getUserExperienceCount(user.id),
     getUserSkills(user.id),
     getUserSkillCount(user.id),
     getUserCustomSections(user.id),
     getUserCustomSectionCount(user.id),
+    getPortfolioConfig(user.id),
   ]);
+  
+  // If no portfolio config exists, create a default one
+  let finalPortfolioConfig = portfolioConfig;
+  if (!portfolioConfig) {
+    try {
+      finalPortfolioConfig = await createPortfolioConfig({
+        userId: user.id,
+        sectionOrder: [
+          { id: 'profile', type: 'profile', order: 1, isVisible: true, layout: 'default' },
+          { id: 'experiences', type: 'experiences', order: 2, isVisible: true, layout: 'default' },
+          { id: 'skills', type: 'skills', order: 3, isVisible: true, layout: 'default' }
+        ],
+        layoutType: 'default',
+        theme: 'light',
+        primaryColor: '#3b82f6',
+        fontFamily: 'Inter',
+        spacing: 'comfortable',
+        showProfileImage: true,
+        showSocialLinks: true,
+        showContactInfo: true,
+        animationsEnabled: true
+      });
+    } catch (error) {
+      console.error('Failed to create default portfolio config for user:', user.id, error);
+      // Continue without portfolio config if creation fails
+    }
+  }
   
   const portfolioStats = {
     experiences: experienceCount,
@@ -67,7 +97,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
     console.error("❌ Blob connection test failed:", error);
   }
   
-  return { user, portfolioStats, experiences, skills, customSections };
+  return { user, portfolioStats, experiences, skills, customSections, portfolioConfig: finalPortfolioConfig };
 }
 
 export async function action({ request }: LoaderFunctionArgs) {
@@ -711,16 +741,70 @@ export async function action({ request }: LoaderFunctionArgs) {
     }
   }
   
+  if (action === "updateSectionOrder") {
+    const sectionOrderData = formData.get("sectionOrder") as string;
+    const hasExistingConfig = formData.get("hasExistingConfig") === "true";
+    
+    if (!sectionOrderData) {
+      return { 
+        success: false, 
+        error: "Missing section order data",
+        details: "Section order data is required"
+      };
+    }
+    
+    try {
+      const sectionOrder = JSON.parse(sectionOrderData);
+      
+      if (hasExistingConfig) {
+        // Update existing portfolio config
+        await updatePortfolioConfig(user.id, { sectionOrder });
+        console.log("✅ Portfolio config updated with new section order");
+      } else {
+        // Create new portfolio config
+        await createPortfolioConfig({
+          userId: user.id,
+          sectionOrder,
+          layoutType: 'default',
+          theme: 'light',
+          primaryColor: '#3b82f6',
+          fontFamily: 'Inter',
+          spacing: 'comfortable',
+          showProfileImage: true,
+          showSocialLinks: true,
+          showContactInfo: true,
+          customCSS: null,
+          animationsEnabled: true
+        });
+        console.log("✅ New portfolio config created with section order");
+      }
+      
+      return { 
+        success: true, 
+        type: "section-order-updated",
+        title: 'Section Order',
+        message: 'Section order updated successfully!'
+      };
+    } catch (error) {
+      console.error("Failed to update section order:", error);
+      return { 
+        success: false, 
+        error: "Failed to update section order",
+        details: error instanceof Error ? error.message : "Unknown error"
+      };
+    }
+  }
+  
   console.log("❌ No matching action found for:", action);
   throw new Response("Invalid action", { status: 400 });
 }
 
 import { useLoaderData, useSubmit, useActionData } from "react-router";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { experienceToasts, profileToasts, skillToasts } from "../lib/toast.client";
 
 export default function Dashboard() {
-  const { user, portfolioStats, experiences, skills, customSections } = useLoaderData<typeof loader>();
+  const { user, portfolioStats, experiences, skills, customSections, portfolioConfig } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
   const submit = useSubmit();
   
@@ -733,6 +817,7 @@ export default function Dashboard() {
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   const [showDomainModal, setShowDomainModal] = useState(false);
   const [showThemeModal, setShowThemeModal] = useState(false);
+  const [showSectionOrderingModal, setShowSectionOrderingModal] = useState(false);
   
   // Edit and delete state
   const [editingExperience, setEditingExperience] = useState<typeof experiences[0] | null>(null);
@@ -747,6 +832,140 @@ export default function Dashboard() {
   const [deletingEntry, setDeletingEntry] = useState<{ sectionId: string; entryId: string; entry: any } | null>(null);
 
   // Old URL-based useEffect removed - now using direct state management
+
+  // Section ordering handler
+  const handleReorderSections = (reorderedSections: any[]) => {
+    console.log("🔄 Reordering sections:", reorderedSections);
+    
+    // Prepare section order data for database
+    const sectionOrder = reorderedSections.map((section, index) => ({
+      id: section.id,
+      type: section.type,
+      order: index + 1,
+      isVisible: section.isPublic,
+      layout: 'default',
+      sectionId: section.type === 'custom' ? section.slug : undefined
+    }));
+    
+    // Submit to server action
+    const formData = new FormData();
+    formData.append("_action", "updateSectionOrder");
+    formData.append("sectionOrder", JSON.stringify(sectionOrder));
+    formData.append("hasExistingConfig", portfolioConfig ? "true" : "false");
+    
+    submit(formData, { method: "post" });
+  };
+
+  // Prepare sections data for ordering - use portfolio config if available
+  const sectionsForOrdering = useMemo(() => {
+    if (portfolioConfig?.sectionOrder && Array.isArray(portfolioConfig.sectionOrder)) {
+      // Use existing order from portfolio config
+      const orderedSections = [];
+      
+      // Map through the stored order and find corresponding sections
+      for (const configSection of portfolioConfig.sectionOrder) {
+        if (configSection.type === 'profile') {
+          orderedSections.push({
+            id: 'profile',
+            title: 'Profile Information',
+            type: 'profile' as const,
+            order: configSection.order,
+            isPublic: true,
+            description: 'Personal information and contact details'
+          });
+        } else if (configSection.type === 'experiences') {
+          orderedSections.push({
+            id: 'experiences',
+            title: 'Experiences',
+            type: 'experiences' as const,
+            order: configSection.order,
+            isPublic: true,
+            description: 'Work history and professional experience'
+          });
+        } else if (configSection.type === 'skills') {
+          orderedSections.push({
+            id: 'skills',
+            title: 'Skills & Abilities',
+            type: 'skills' as const,
+            order: configSection.order,
+            isPublic: true,
+            description: 'Technical and soft skills'
+          });
+        } else if (configSection.type === 'custom') {
+          const customSection = customSections.find(s => s.slug === configSection.sectionId);
+          if (customSection) {
+            orderedSections.push({
+              id: customSection.id,
+              title: customSection.title,
+              type: 'custom' as const,
+              slug: customSection.slug,
+              order: configSection.order,
+              isPublic: customSection.isPublic,
+              description: customSection.description
+            });
+          }
+        }
+      }
+      
+      // Add any custom sections that aren't in the config yet
+      const configuredCustomSlugs = portfolioConfig.sectionOrder
+        .filter(s => s.type === 'custom')
+        .map(s => s.sectionId);
+      
+      customSections.forEach(section => {
+        if (!configuredCustomSlugs.includes(section.slug)) {
+          orderedSections.push({
+            id: section.id,
+            title: section.title,
+            type: 'custom' as const,
+            slug: section.slug,
+            order: orderedSections.length + 1,
+            isPublic: section.isPublic,
+            description: section.description
+          });
+        }
+      });
+      
+      return orderedSections.sort((a, b) => a.order - b.order);
+    }
+    
+    // Default order if no config exists
+    return [
+      {
+        id: 'profile',
+        title: 'Profile Information',
+        type: 'profile' as const,
+        order: 1,
+        isPublic: true,
+        description: 'Personal information and contact details'
+      },
+      {
+        id: 'experiences',
+        title: 'Experiences',
+        type: 'experiences' as const,
+        order: 2,
+        isPublic: true,
+        description: 'Work history and professional experience'
+      },
+      {
+        id: 'skills',
+        title: 'Skills & Abilities',
+        type: 'skills' as const,
+        order: 3,
+        isPublic: true,
+        description: 'Technical and soft skills'
+      },
+      ...customSections.map(section => ({
+        id: section.id,
+        title: section.title,
+        type: 'custom' as const,
+        slug: section.slug,
+        order: section.order + 3, // Start after default sections
+        isPublic: section.isPublic,
+        description: section.description
+      }))
+    ];
+  }, [portfolioConfig, customSections]);
 
   // Entry management handlers
   const handleAddEntry = (sectionId: string) => {
@@ -907,12 +1126,19 @@ export default function Dashboard() {
   }, [actionData]);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen" style={{ backgroundColor: 'var(--bg-primary)' }}>
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-4 py-6 sm:px-6 lg:px-8">
+      <div className="border-b px-4 py-6 sm:px-6 lg:px-8" style={{ 
+        backgroundColor: 'var(--bg-navbar)', 
+        borderColor: 'var(--border-color)' 
+      }}>
         <div className="max-w-7xl mx-auto">
-          <h1 className="text-3xl font-bold text-gray-900">{user.firstName} {user.lastName}'s Portfolio Dashboard</h1>
-          <p className="text-gray-600 mt-2">Manage your professional portfolio and content</p>
+          <h1 className="text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>
+            {user.firstName} {user.lastName}'s Portfolio Dashboard
+          </h1>
+          <p className="mt-2" style={{ color: 'var(--text-secondary)' }}>
+            Manage your professional portfolio and content
+          </p>
         </div>
       </div>
 
@@ -920,7 +1146,7 @@ export default function Dashboard() {
       <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
         <div className="layout-original">
           {/* Main Content Area - Vertically Aligned Cards */}
-          <div className="main-content-area space-y-8">
+          <div className="main-content-area space-y-8" style={{ backgroundColor: 'var(--bg-primary)' }}>
             {/* Profile Information Card */}
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
@@ -950,7 +1176,7 @@ export default function Dashboard() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center gap-4">
-                  <div className="w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
+                  <div className="w-20 h-20 rounded-full flex items-center justify-center overflow-hidden" style={{ backgroundColor: 'var(--border-light)' }}>
                     {user.avatarUrl ? (
                       <>
                         <img 
@@ -969,35 +1195,35 @@ export default function Dashboard() {
                         </div>
                       </>
                     ) : (
-                      <span className="text-2xl font-medium text-gray-600">
+                      <span className="text-2xl font-medium" style={{ color: 'var(--text-muted)' }}>
                         {user.firstName[0]}{user.lastName[0]}
                       </span>
                     )}
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-lg font-medium">{user.firstName} {user.lastName}</h3>
-                    <p className="text-gray-600">{user.email}</p>
+                    <h3 className="text-lg font-medium" style={{ color: 'var(--text-primary)' }}>{user.firstName} {user.lastName}</h3>
+                    <p style={{ color: 'var(--text-secondary)' }}>{user.email}</p>
                     {user.bio && (
-                      <p className="text-gray-700 mt-2">{user.bio}</p>
+                      <p className="mt-2" style={{ color: 'var(--text-primary)' }}>{user.bio}</p>
                     )}
                   </div>
                 </div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t" style={{ borderTopColor: 'var(--border-light)' }}>
                   <div>
-                    <label className="text-sm font-medium text-gray-700">Location</label>
-                    <p className="text-gray-900">
+                    <label className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>Location</label>
+                    <p style={{ color: 'var(--text-primary)' }}>
                       {user.city && user.state ? `${user.city}, ${user.state}` : 'Not specified'}
                     </p>
                   </div>
                   <div>
-                    <label className="text-medium text-gray-700">Phone</label>
-                    <p className="text-gray-900">{user.phone || 'Not specified'}</p>
+                    <label className="text-medium" style={{ color: 'var(--text-secondary)' }}>Phone</label>
+                    <p style={{ color: 'var(--text-primary)' }}>{user.phone || 'Not specified'}</p>
                   </div>
                   {user.linkedinUrl && (
                     <div>
                       <a href={user.linkedinUrl} target="_blank" rel="noopener noreferrer" 
-                         className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 transition-colors">
+                         className="inline-flex items-center gap-2 transition-colors" style={{ color: 'var(--focus-ring)' }}>
                         <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
                           <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
                         </svg>
@@ -1008,7 +1234,7 @@ export default function Dashboard() {
                   {user.githubUrl && (
                     <div>
                       <a href={user.githubUrl} target="_blank" rel="noopener noreferrer" 
-                         className="inline-flex items-center gap-2 text-gray-700 hover:text-gray-900 transition-colors">
+                         className="inline-flex items-center gap-2 transition-colors" style={{ color: 'var(--text-secondary)' }}>
                         <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
                           <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
                         </svg>
@@ -1029,7 +1255,7 @@ export default function Dashboard() {
                 {portfolioStats.experiences === 0 ? (
                   <div className="space-y-4">
                     {/* Empty state message */}
-                    <div className="text-center py-6 text-gray-500">
+                    <div className="text-center py-6" style={{ color: 'var(--text-muted)' }}>
                       <p className="text-lg">No experiences added yet</p>
                       <p className="text-sm">Start building your professional history</p>
                     </div>
@@ -1039,16 +1265,19 @@ export default function Dashboard() {
                       onClick={() => setShowExperienceForm(true)}
                       className="group cursor-pointer"
                     >
-                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 transition-all duration-200 hover:border-blue-400 hover:bg-blue-50">
+                      <div className="border-2 border-dashed rounded-lg p-4 transition-all duration-200" style={{ 
+                        borderColor: 'var(--border-color)',
+                        backgroundColor: 'var(--bg-card-content)'
+                      }}>
                         <div className="flex items-center gap-3 justify-center">
-                          <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center group-hover:bg-blue-100 transition-colors flex-shrink-0">
-                            <Plus className="w-5 h-5 text-gray-400 group-hover:text-blue-500" />
+                          <div className="w-10 h-10 rounded-full flex items-center justify-center transition-colors flex-shrink-0" style={{ backgroundColor: 'var(--border-light)' }}>
+                            <Plus className="w-5 h-5" style={{ color: 'var(--text-muted)' }} />
                           </div>
                           <div className="text-left">
-                            <p className="font-medium text-gray-700 group-hover:text-blue-700">
+                            <p className="font-medium" style={{ color: 'var(--text-primary)' }}>
                               Add Your First Experience
                             </p>
-                            <p className="text-sm text-gray-500 group-hover:text-blue-600">
+                            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
                               Click to create your first work experience
                             </p>
                           </div>
@@ -1059,15 +1288,18 @@ export default function Dashboard() {
                 ) : (
                   <div className="space-y-4">
                     {experiences.map((experience) => (
-                      <div key={experience.id} className="border rounded-lg p-4 bg-white">
+                      <div key={experience.id} className="border rounded-lg p-4" style={{ 
+                        borderColor: 'var(--border-color)', 
+                        backgroundColor: 'var(--bg-card-content)' 
+                      }}>
                         <div className="flex justify-between items-start">
                           <div className="flex-1">
-                            <h3 className="font-medium text-gray-900">{experience.title}</h3>
-                            <p className="text-gray-600">{experience.companyName}</p>
+                            <h3 className="font-medium" style={{ color: 'var(--text-primary)' }}>{experience.title}</h3>
+                            <p style={{ color: 'var(--text-secondary)' }}>{experience.companyName}</p>
                             {experience.location && (
-                              <p className="text-sm text-gray-500">{experience.location}</p>
+                              <p className="text-sm" style={{ color: 'var(--text-muted)' }}>{experience.location}</p>
                             )}
-                            <p className="text-sm text-gray-500">
+                            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
                               {new Date(experience.startDate).toLocaleDateString()} - 
                               {experience.isCurrent ? 'Present' : experience.endDate ? new Date(experience.endDate).toLocaleDateString() : 'No end date'}
                             </p>
@@ -1104,16 +1336,19 @@ export default function Dashboard() {
                       onClick={() => setShowExperienceForm(true)}
                       className="group cursor-pointer"
                     >
-                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 transition-all duration-200 hover:border-blue-400 hover:bg-blue-50">
+                      <div className="border-2 border-dashed rounded-lg p-4 transition-all duration-200" style={{ 
+                        borderColor: 'var(--border-color)',
+                        backgroundColor: 'var(--bg-card-content)'
+                      }}>
                         <div className="flex items-center gap-3 justify-center">
-                          <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center group-hover:bg-blue-100 transition-colors flex-shrink-0">
-                            <Plus className="w-5 h-5 text-gray-400 group-hover:text-blue-500" />
+                          <div className="w-10 h-10 rounded-full flex items-center justify-center transition-colors flex-shrink-0" style={{ backgroundColor: 'var(--border-light)' }}>
+                            <Plus className="w-5 h-5" style={{ color: 'var(--text-muted)' }} />
                           </div>
                           <div className="text-left">
-                            <p className="font-medium text-gray-700 group-hover:text-blue-700">
+                            <p className="font-medium" style={{ color: 'var(--text-primary)' }}>
                               Add Another Experience
                             </p>
-                            <p className="text-sm text-gray-500 group-hover:text-blue-600">
+                            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
                               Click to add another work experience
                             </p>
                           </div>
@@ -1134,7 +1369,7 @@ export default function Dashboard() {
                 {portfolioStats.skills === 0 ? (
                   <div className="space-y-4">
                     {/* Empty state message */}
-                    <div className="text-center py-6 text-gray-500">
+                    <div className="text-center py-6" style={{ color: 'var(--text-muted)' }}>
                       <p className="text-lg">No skills added yet</p>
                       <p className="text-sm">Showcase your technical and soft skills</p>
                     </div>
@@ -1144,16 +1379,19 @@ export default function Dashboard() {
                       onClick={() => setShowSkillsForm(true)}
                       className="group cursor-pointer"
                     >
-                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 transition-all duration-200 hover:border-blue-400 hover:bg-blue-50">
+                      <div className="border-2 border-dashed rounded-lg p-4 transition-all duration-200" style={{ 
+                        borderColor: 'var(--border-color)',
+                        backgroundColor: 'var(--bg-card-content)'
+                      }}>
                         <div className="flex items-center gap-3 justify-center">
-                          <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center group-hover:bg-blue-100 transition-colors flex-shrink-0">
-                            <Plus className="w-5 h-5 text-gray-400 group-hover:text-blue-500" />
+                          <div className="w-10 h-10 rounded-full flex items-center justify-center transition-colors flex-shrink-0" style={{ backgroundColor: 'var(--border-light)' }}>
+                            <Plus className="w-5 h-5" style={{ color: 'var(--text-muted)' }} />
                           </div>
                           <div className="text-left">
-                            <p className="font-medium text-gray-700 group-hover:text-blue-700">
+                            <p className="font-medium" style={{ color: 'var(--text-primary)' }}>
                               {portfolioStats.skills === 0 ? 'Add Your First Skill' : 'Add Another Skill'}
                             </p>
-                            <p className="text-sm text-gray-500 group-hover:text-blue-600">
+                            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
                               {portfolioStats.skills === 0 
                                 ? 'Click to create your first skill entry' 
                                 : 'Click to add another skill'
@@ -1167,23 +1405,35 @@ export default function Dashboard() {
                 ) : (
                   <div className="space-y-4">
                     {skills.map((skill) => (
-                      <div key={skill.id} className="border rounded-lg p-4 bg-white">
+                      <div key={skill.id} className="border rounded-lg p-4" style={{ 
+                        borderColor: 'var(--border-color)', 
+                        backgroundColor: 'var(--bg-card-content)' 
+                      }}>
                         <div className="flex justify-between items-start">
                           <div className="flex-1">
-                            <h3 className="font-medium text-gray-900">{skill.name}</h3>
-                            <div className="flex gap-4 text-sm text-gray-600 mt-1">
+                            <h3 className="font-medium" style={{ color: 'var(--text-primary)' }}>{skill.name}</h3>
+                            <div className="flex gap-4 text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
                               {skill.category && (
-                                <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                                <span className="px-2 py-1 rounded-full" style={{ 
+                                  backgroundColor: 'var(--success-bg)', 
+                                  color: 'var(--success-text)' 
+                                }}>
                                   {skill.category}
                                 </span>
                               )}
                               {skill.proficiency && (
-                                <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full">
+                                <span className="px-2 py-1 rounded-full" style={{ 
+                                  backgroundColor: 'var(--success-bg)', 
+                                  color: 'var(--success-text)' 
+                                }}>
                                   Level {skill.proficiency}/5
                                 </span>
                               )}
                               {skill.yearsOfExperience && (
-                                <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded-full">
+                                <span className="px-2 py-1 rounded-full" style={{ 
+                                  backgroundColor: 'var(--success-bg)', 
+                                  color: 'var(--success-text)' 
+                                }}>
                                   {skill.yearsOfExperience} years
                                 </span>
                               )}
@@ -1221,16 +1471,19 @@ export default function Dashboard() {
                       onClick={() => setShowSkillsForm(true)}
                       className="group cursor-pointer"
                     >
-                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 transition-all duration-200 hover:border-blue-400 hover:bg-blue-50">
+                      <div className="border-2 border-dashed rounded-lg p-4 transition-all duration-200" style={{ 
+                        borderColor: 'var(--border-color)',
+                        backgroundColor: 'var(--bg-card-content)'
+                      }}>
                         <div className="flex items-center gap-3 justify-center">
-                          <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center group-hover:bg-blue-100 transition-colors flex-shrink-0">
-                            <Plus className="w-5 h-5 text-gray-400 group-hover:text-blue-500" />
+                          <div className="w-10 h-10 rounded-full flex items-center justify-center transition-colors flex-shrink-0" style={{ backgroundColor: 'var(--border-light)' }}>
+                            <Plus className="w-5 h-5" style={{ color: 'var(--text-muted)' }} />
                           </div>
                           <div className="text-left">
-                            <p className="font-medium text-gray-700 group-hover:text-blue-700">
+                            <p className="font-medium" style={{ color: 'var(--text-primary)' }}>
                               Add Another Skill
                             </p>
-                            <p className="text-sm text-gray-500 group-hover:text-blue-600">
+                            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
                               Click to add another skill
                             </p>
                           </div>
@@ -1251,7 +1504,7 @@ export default function Dashboard() {
                 {portfolioStats.customSections === 0 ? (
                   <div className="space-y-4">
                     {/* Empty state message */}
-                    <div className="text-center py-6 text-gray-500">
+                    <div className="text-center py-6" style={{ color: 'var(--text-muted)' }}>
                       <p className="text-lg">No custom sections added yet</p>
                       <p className="text-sm">Create custom content sections like STAR Memos, Project Showcases, or Speaking Engagements</p>
                     </div>
@@ -1261,16 +1514,19 @@ export default function Dashboard() {
                       onClick={() => setShowCustomSectionForm(true)}
                       className="group cursor-pointer"
                     >
-                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 transition-all duration-200 hover:border-blue-400 hover:bg-blue-50">
+                      <div className="border-2 border-dashed rounded-lg p-4 transition-all duration-200" style={{ 
+                        borderColor: 'var(--border-color)',
+                        backgroundColor: 'var(--bg-card-content)'
+                      }}>
                         <div className="flex items-center gap-3 justify-center">
-                          <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center group-hover:bg-blue-100 transition-colors flex-shrink-0">
-                            <Plus className="w-5 h-5 text-gray-400 group-hover:text-blue-500" />
+                          <div className="w-10 h-10 rounded-full flex items-center justify-center transition-colors flex-shrink-0" style={{ backgroundColor: 'var(--border-light)' }}>
+                            <Plus className="w-5 h-5" style={{ color: 'var(--text-muted)' }} />
                           </div>
                           <div className="text-left">
-                            <p className="font-medium text-gray-700 group-hover:text-blue-700">
+                            <p className="font-medium" style={{ color: 'var(--text-primary)' }}>
                               {portfolioStats.customSections === 0 ? 'Add Your First Custom Section' : 'Add Another Custom Section'}
                             </p>
-                            <p className="text-sm text-gray-500 group-hover:text-blue-600">
+                            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
                               {portfolioStats.customSections === 0 
                                 ? 'Click to create your first custom content section' 
                                 : 'Click to add another custom section'
@@ -1303,16 +1559,19 @@ export default function Dashboard() {
                       onClick={() => setShowCustomSectionForm(true)}
                       className="group cursor-pointer"
                     >
-                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 transition-all duration-200 hover:border-blue-400 hover:bg-blue-50">
+                      <div className="border-2 border-dashed rounded-lg p-4 transition-all duration-200" style={{ 
+                        borderColor: 'var(--border-color)',
+                        backgroundColor: 'var(--bg-card-content)'
+                      }}>
                         <div className="flex items-center gap-3 justify-center">
-                          <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center group-hover:bg-blue-100 transition-colors flex-shrink-0">
-                            <Plus className="w-5 h-5 text-gray-400 group-hover:text-blue-500" />
+                          <div className="w-10 h-10 rounded-full flex items-center justify-center transition-colors flex-shrink-0" style={{ backgroundColor: 'var(--border-light)' }}>
+                            <Plus className="w-5 h-5" style={{ color: 'var(--text-muted)' }} />
                           </div>
                           <div className="text-left">
-                            <p className="font-medium text-gray-700 group-hover:text-blue-700">
+                            <p className="font-medium" style={{ color: 'var(--text-primary)' }}>
                               Add Another Custom Section
                             </p>
-                            <p className="text-sm text-gray-500 group-hover:text-blue-600">
+                            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
                               Click to add another custom section
                             </p>
                           </div>
@@ -1332,6 +1591,7 @@ export default function Dashboard() {
                 onOpenPrivacyModal={() => setShowPrivacyModal(true)}
                 onOpenDomainModal={() => setShowDomainModal(true)}
                 onOpenThemeModal={() => setShowThemeModal(true)}
+                onOpenSectionOrderingModal={() => setShowSectionOrderingModal(true)}
               />
             </div>
         </div>
@@ -1576,6 +1836,14 @@ export default function Dashboard() {
       <ThemeStylingModal
         isOpen={showThemeModal}
         onClose={() => setShowThemeModal(false)}
+      />
+
+      {/* Section Ordering Modal */}
+      <SectionOrderingModal
+        isOpen={showSectionOrderingModal}
+        onClose={() => setShowSectionOrderingModal(false)}
+        sections={sectionsForOrdering}
+        onReorder={handleReorderSections}
       />
     </div>
   );

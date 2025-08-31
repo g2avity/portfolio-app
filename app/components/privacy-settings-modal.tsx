@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
+import { Modal } from "./ui/modal";
 import { 
   Eye, 
   EyeOff, 
@@ -10,7 +11,6 @@ import {
   Search, 
   Mail, 
   Users, 
-  X, 
   Plus, 
   Trash2,
   Globe,
@@ -70,24 +70,8 @@ export default function PrivacySettingsModal({ isOpen, onClose }: PrivacySetting
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b">
-          <div className="flex items-center gap-3">
-            <Shield className="w-6 h-6 text-blue-600" />
-            <h2 className="text-xl font-semibold text-gray-900">Privacy Settings</h2>
-          </div>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Content */}
-        <div className="p-6 space-y-6">
+    <Modal isOpen={isOpen} onClose={onClose} title="Privacy Settings" maxWidth="max-w-2xl">
+      <div className="space-y-6">
           {/* Portfolio Visibility */}
           <Card>
             <CardHeader className="pb-3">
@@ -274,10 +258,8 @@ export default function PrivacySettingsModal({ isOpen, onClose }: PrivacySetting
               </CardContent>
             </Card>
           )}
-        </div>
-
         {/* Footer */}
-        <div className="flex justify-end gap-3 p-6 border-t bg-gray-50">
+        <div className="flex justify-end gap-3 pt-6 border-t" style={{ borderColor: 'var(--border-color)' }}>
           <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>
@@ -286,6 +268,6 @@ export default function PrivacySettingsModal({ isOpen, onClose }: PrivacySetting
           </Button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }
