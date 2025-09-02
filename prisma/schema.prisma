@@ -161,6 +161,14 @@ model PortfolioConfig {
   animationsEnabled Boolean  @default(true)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
+  seoAuthor         String?
+  seoCanonicalUrl   String?
+  seoDescription    String?
+  seoKeywords       String?
+  seoLanguage       String?  @default("en-US")
+  seoOgImage        String?
+  seoRobotsMeta     String?  @default("index, follow")
+  seoTitle          String?
   user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("portfolio_configs")

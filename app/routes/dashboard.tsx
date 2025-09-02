@@ -1,4 +1,4 @@
-import type { LoaderFunctionArgs } from "react-router";
+import type { LoaderFunctionArgs, ActionFunctionArgs } from "react-router";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Link } from "react-router";
@@ -17,6 +17,7 @@ import PrivacySettingsModal from "../components/privacy-settings-modal";
 import CustomDomainModal from "../components/custom-domain-modal";
 import ThemeStylingModal from "../components/theme-styling-modal";
 import SectionOrderingModal from "../components/section-ordering-modal";
+import SEOSettingsModal from "../components/seo-settings-modal";
 import { getUserExperiences, getUserExperienceCount, createExperience, updateExperience, deleteExperience, getUserSkills, getUserSkillCount, createSkill, updateSkill, deleteSkill, updateUserProfile, getUserCustomSections, getUserCustomSectionCount, createCustomSection, updateCustomSection, deleteCustomSection } from "../lib/db.server";
 import { getPortfolioConfig, createPortfolioConfig, updatePortfolioConfig } from "../lib/portfolio-config.server";
 import { testBlobConnection } from "../lib/blob.server";
@@ -100,7 +101,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
   return { user, portfolioStats, experiences, skills, customSections, portfolioConfig: finalPortfolioConfig };
 }
 
-export async function action({ request }: LoaderFunctionArgs) {
+export async function action({ request }: ActionFunctionArgs) {
   console.log("🚀 Action function entry point");
   
   const user = await requireUser(request);
@@ -773,7 +774,7 @@ export async function action({ request }: LoaderFunctionArgs) {
           showProfileImage: true,
           showSocialLinks: true,
           showContactInfo: true,
-          customCSS: null,
+          customCSS: undefined,
           animationsEnabled: true
         });
         console.log("✅ New portfolio config created with section order");
@@ -790,6 +791,71 @@ export async function action({ request }: LoaderFunctionArgs) {
       return { 
         success: false, 
         error: "Failed to update section order",
+        details: error instanceof Error ? error.message : "Unknown error"
+      };
+    }
+  }
+
+  if (action === "updateSEOSettings") {
+    try {
+      const seoTitle = formData.get("seoTitle") as string;
+      const seoDescription = formData.get("seoDescription") as string;
+      const seoKeywords = formData.get("seoKeywords") as string;
+      const seoOgImage = formData.get("seoOgImage") as string;
+      const seoCanonicalUrl = formData.get("seoCanonicalUrl") as string;
+      const seoRobotsMeta = formData.get("seoRobotsMeta") as string;
+      const seoLanguage = formData.get("seoLanguage") as string;
+      const seoAuthor = formData.get("seoAuthor") as string;
+
+      await updatePortfolioConfig(user.id, {
+        seoTitle: seoTitle || undefined,
+        seoDescription: seoDescription || undefined,
+        seoKeywords: seoKeywords || undefined,
+        seoOgImage: seoOgImage || undefined,
+        seoCanonicalUrl: seoCanonicalUrl || undefined,
+        seoRobotsMeta: seoRobotsMeta || undefined,
+        seoLanguage: seoLanguage || undefined,
+        seoAuthor: seoAuthor || undefined,
+      });
+
+      return { 
+        success: true, 
+        message: "SEO settings updated successfully" 
+      };
+    } catch (error) {
+      console.error("❌ Failed to update SEO settings:", error);
+      return { 
+        success: false, 
+        error: "Failed to update SEO settings",
+        details: error instanceof Error ? error.message : "Unknown error"
+      };
+    }
+  }
+
+  if (action === "updateTheme") {
+    try {
+      const theme = formData.get("theme") as string;
+      
+      if (!theme || !['light', 'dark'].includes(theme)) {
+        return { 
+          success: false, 
+          error: "Invalid theme value" 
+        };
+      }
+
+      await updatePortfolioConfig(user.id, {
+        theme: theme
+      });
+
+      return { 
+        success: true, 
+        message: "Theme updated successfully" 
+      };
+    } catch (error) {
+      console.error("❌ Failed to update theme:", error);
+      return { 
+        success: false, 
+        error: "Failed to update theme",
         details: error instanceof Error ? error.message : "Unknown error"
       };
     }
@@ -818,6 +884,7 @@ export default function Dashboard() {
   const [showDomainModal, setShowDomainModal] = useState(false);
   const [showThemeModal, setShowThemeModal] = useState(false);
   const [showSectionOrderingModal, setShowSectionOrderingModal] = useState(false);
+  const [showSEOModal, setShowSEOModal] = useState(false);
   
   // Edit and delete state
   const [editingExperience, setEditingExperience] = useState<typeof experiences[0] | null>(null);
@@ -1592,6 +1659,7 @@ export default function Dashboard() {
                 onOpenDomainModal={() => setShowDomainModal(true)}
                 onOpenThemeModal={() => setShowThemeModal(true)}
                 onOpenSectionOrderingModal={() => setShowSectionOrderingModal(true)}
+                onOpenSEOModal={() => setShowSEOModal(true)}
               />
             </div>
         </div>
@@ -1844,6 +1912,12 @@ export default function Dashboard() {
         onClose={() => setShowSectionOrderingModal(false)}
         sections={sectionsForOrdering}
         onReorder={handleReorderSections}
+      />
+
+      {/* SEO Settings Modal */}
+      <SEOSettingsModal
+        isOpen={showSEOModal}
+        onClose={() => setShowSEOModal(false)}
       />
     </div>
   );

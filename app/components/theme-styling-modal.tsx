@@ -145,7 +145,11 @@ export default function ThemeStylingModal({ isOpen, onClose }: ThemeStylingModal
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="rounded-lg shadow-xl max-w-5xl w-full max-h-[90vh] overflow-y-auto" style={{ 
-        backgroundColor: 'var(--bg-modal)' 
+        backgroundColor: 'var(--bg-modal)',
+        maxWidth: '80rem',
+        width: '100%',
+        maxHeight: '90vh',
+        overflowY: 'auto'
       }}>
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b" style={{ 
@@ -186,7 +190,7 @@ export default function ThemeStylingModal({ isOpen, onClose }: ThemeStylingModal
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-3 gap-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem' }}>
                 {[
                   { value: 'light', icon: Sun, label: 'Light', description: 'Clean, bright interface' },
                   { value: 'dark', icon: Moon, label: 'Dark', description: 'Easy on the eyes' },

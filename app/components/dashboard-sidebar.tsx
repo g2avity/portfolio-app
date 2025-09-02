@@ -42,9 +42,10 @@ interface DashboardSidebarProps {
   onOpenDomainModal?: () => void;
   onOpenThemeModal?: () => void;
   onOpenSectionOrderingModal?: () => void;
+  onOpenSEOModal?: () => void;
 }
 
-export function DashboardSidebar({ user, onOpenPrivacyModal, onOpenDomainModal, onOpenThemeModal, onOpenSectionOrderingModal }: DashboardSidebarProps) {
+export function DashboardSidebar({ user, onOpenPrivacyModal, onOpenDomainModal, onOpenThemeModal, onOpenSectionOrderingModal, onOpenSEOModal }: DashboardSidebarProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -63,7 +64,7 @@ export function DashboardSidebar({ user, onOpenPrivacyModal, onOpenDomainModal, 
               <SheetTitle>Dashboard Settings</SheetTitle>
             </SheetHeader>
             <div className="mt-6">
-              <DashboardSidebarContent user={user} onItemClick={() => setIsOpen(false)} onOpenPrivacyModal={onOpenPrivacyModal} onOpenDomainModal={onOpenDomainModal} onOpenThemeModal={onOpenThemeModal} onOpenSectionOrderingModal={onOpenSectionOrderingModal} />
+              <DashboardSidebarContent user={user} onItemClick={() => setIsOpen(false)} onOpenPrivacyModal={onOpenPrivacyModal} onOpenDomainModal={onOpenDomainModal} onOpenThemeModal={onOpenThemeModal} onOpenSectionOrderingModal={onOpenSectionOrderingModal} onOpenSEOModal={onOpenSEOModal} />
             </div>
           </SheetContent>
         </Sheet>
@@ -72,7 +73,7 @@ export function DashboardSidebar({ user, onOpenPrivacyModal, onOpenDomainModal, 
       {/* Desktop Sidebar */}
       <div className="hidden lg:block w-80 flex-shrink-0">
         <div className="sticky top-6">
-          <DashboardSidebarContent user={user} onOpenPrivacyModal={onOpenPrivacyModal} onOpenDomainModal={onOpenDomainModal} onOpenThemeModal={onOpenThemeModal} onOpenSectionOrderingModal={onOpenSectionOrderingModal} />
+          <DashboardSidebarContent user={user} onOpenPrivacyModal={onOpenPrivacyModal} onOpenDomainModal={onOpenDomainModal} onOpenThemeModal={onOpenThemeModal} onOpenSectionOrderingModal={onOpenSectionOrderingModal} onOpenSEOModal={onOpenSEOModal} />
         </div>
       </div>
     </>
@@ -85,7 +86,8 @@ function DashboardSidebarContent({
   onOpenPrivacyModal,
   onOpenDomainModal,
   onOpenThemeModal,
-  onOpenSectionOrderingModal
+  onOpenSectionOrderingModal,
+  onOpenSEOModal
 }: { 
   user: DashboardSidebarProps['user']; 
   onItemClick?: () => void;
@@ -93,6 +95,7 @@ function DashboardSidebarContent({
   onOpenDomainModal?: () => void;
   onOpenThemeModal?: () => void;
   onOpenSectionOrderingModal?: () => void;
+  onOpenSEOModal?: () => void;
 }) {
   const sidebarItems: SidebarSection[] = [
     {
@@ -118,9 +121,8 @@ function DashboardSidebarContent({
       title: "Content Management",
       icon: Settings,
       items: [
-        { label: "Content Sections", href: "#sections", icon: Settings },
-        { label: "Media Library", href: "#media", icon: Settings },
-        { label: "SEO Settings", href: "#seo", icon: Settings },
+        { label: "Media Library", href: "/dashboard/media", icon: Settings },
+        { label: "SEO Settings", icon: Settings, action: "seo" },
       ]
     }
   ];
@@ -220,6 +222,11 @@ function DashboardSidebarContent({
                     onOpenSectionOrderingModal?.();
                     // Don't call onItemClick for modal actions to avoid closing mobile sidebar
                     return;
+                  } else if (item.action === "seo") {
+                    // Open SEO settings modal
+                    onOpenSEOModal?.();
+                    // Don't call onItemClick for modal actions to avoid closing mobile sidebar
+                    return;
                   } else if (item.href === "/account") {
                     // Navigate to account route
                     window.location.href = item.href;
@@ -231,6 +238,9 @@ function DashboardSidebarContent({
                   } else if (item.href === "/account/email") {
                     // Navigate to email route with state indicating we came from dashboard
                     sessionStorage.setItem('emailFrom', 'dashboard');
+                    window.location.href = item.href;
+                  } else if (item.href === "/dashboard/media") {
+                    // Navigate to media library route
                     window.location.href = item.href;
                   } else {
                     // TODO: Implement navigation to other settings pages
