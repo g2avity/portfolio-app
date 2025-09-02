@@ -1,27 +1,39 @@
 import { useState, useEffect } from "react";
 import { Button } from "./ui/button";
 import { Sun, Moon } from "lucide-react";
+import { useLoaderData, useSubmit } from "react-router";
 
 export function ThemeToggle() {
-  const [isDark, setIsDark] = useState(false);
+  const { user, portfolioConfig } = useLoaderData<typeof import("../routes/dashboard").loader>();
+  const submit = useSubmit();
+  const [isDark, setIsDark] = useState(portfolioConfig?.theme === 'dark');
 
   useEffect(() => {
-    // Check if dark mode is enabled
-    const isDarkMode = document.documentElement.classList.contains('dark');
-    setIsDark(isDarkMode);
-  }, []);
+    // Initialize theme from portfolio config
+    if (portfolioConfig?.theme) {
+      setIsDark(portfolioConfig.theme === 'dark');
+    }
+  }, [portfolioConfig]);
 
   const toggleTheme = () => {
     const newTheme = !isDark;
     setIsDark(newTheme);
     
+    // Update UI immediately
     if (newTheme) {
       document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
     } else {
       document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
     }
+    
+    // Save to localStorage as fallback
+    localStorage.setItem('theme', newTheme ? 'dark' : 'light');
+    
+    // Save to database
+    const formData = new FormData();
+    formData.append("_action", "updateTheme");
+    formData.append("theme", newTheme ? 'dark' : 'light');
+    submit(formData, { method: "post" });
   };
 
   return (

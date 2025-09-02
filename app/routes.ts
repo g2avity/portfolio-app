@@ -8,6 +8,7 @@ export default [
   route("/login", "routes/login.tsx"),
   route("/register", "routes/register.tsx"),
   route("/dashboard", "routes/dashboard.tsx"),
+  route("/dashboard/media", "routes/dashboard.media.tsx"),
   route("/account", "routes/account.tsx"),
   route("/account/security", "routes/account.security.tsx"),
   route("/account/email", "routes/account.email.tsx"),

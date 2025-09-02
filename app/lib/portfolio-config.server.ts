@@ -22,6 +22,15 @@ export interface PortfolioConfigData {
   showContactInfo?: boolean;
   customCSS?: string;
   animationsEnabled?: boolean;
+  // SEO fields
+  seoTitle?: string;
+  seoDescription?: string;
+  seoKeywords?: string;
+  seoOgImage?: string;
+  seoCanonicalUrl?: string;
+  seoRobotsMeta?: string;
+  seoLanguage?: string;
+  seoAuthor?: string;
 }
 
 export interface PortfolioConfig {
@@ -38,6 +47,15 @@ export interface PortfolioConfig {
   showContactInfo: boolean;
   customCSS: string | null;
   animationsEnabled: boolean;
+  // SEO fields
+  seoTitle: string | null;
+  seoDescription: string | null;
+  seoKeywords: string | null;
+  seoOgImage: string | null;
+  seoCanonicalUrl: string | null;
+  seoRobotsMeta: string | null;
+  seoLanguage: string | null;
+  seoAuthor: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -66,6 +84,15 @@ export async function getPortfolioConfig(userId: string): Promise<PortfolioConfi
       showContactInfo: true,
       customCSS: true,
       animationsEnabled: true,
+      // SEO fields
+      seoTitle: true,
+      seoDescription: true,
+      seoKeywords: true,
+      seoOgImage: true,
+      seoCanonicalUrl: true,
+      seoRobotsMeta: true,
+      seoLanguage: true,
+      seoAuthor: true,
       createdAt: true,
       updatedAt: true,
     }
@@ -95,6 +122,15 @@ export async function createPortfolioConfig(data: PortfolioConfigData): Promise<
       showContactInfo: data.showContactInfo ?? true,
       customCSS: data.customCSS || null,
       animationsEnabled: data.animationsEnabled ?? true,
+      // SEO fields
+      seoTitle: data.seoTitle || null,
+      seoDescription: data.seoDescription || null,
+      seoKeywords: data.seoKeywords || null,
+      seoOgImage: data.seoOgImage || null,
+      seoCanonicalUrl: data.seoCanonicalUrl || null,
+      seoRobotsMeta: data.seoRobotsMeta || 'index, follow',
+      seoLanguage: data.seoLanguage || 'en-US',
+      seoAuthor: data.seoAuthor || null,
     },
     select: {
       id: true,
@@ -110,6 +146,15 @@ export async function createPortfolioConfig(data: PortfolioConfigData): Promise<
       showContactInfo: true,
       customCSS: true,
       animationsEnabled: true,
+      // SEO fields
+      seoTitle: true,
+      seoDescription: true,
+      seoKeywords: true,
+      seoOgImage: true,
+      seoCanonicalUrl: true,
+      seoRobotsMeta: true,
+      seoLanguage: true,
+      seoAuthor: true,
       createdAt: true,
       updatedAt: true,
     }
@@ -144,6 +189,15 @@ export async function updatePortfolioConfig(userId: string, data: Partial<Portfo
       showContactInfo: data.showContactInfo ?? true,
       customCSS: data.customCSS || null,
       animationsEnabled: data.animationsEnabled ?? true,
+      // SEO fields
+      seoTitle: data.seoTitle || null,
+      seoDescription: data.seoDescription || null,
+      seoKeywords: data.seoKeywords || null,
+      seoOgImage: data.seoOgImage || null,
+      seoCanonicalUrl: data.seoCanonicalUrl || null,
+      seoRobotsMeta: data.seoRobotsMeta || 'index, follow',
+      seoLanguage: data.seoLanguage || 'en-US',
+      seoAuthor: data.seoAuthor || null,
     },
     select: {
       id: true,
@@ -159,6 +213,15 @@ export async function updatePortfolioConfig(userId: string, data: Partial<Portfo
       showContactInfo: true,
       customCSS: true,
       animationsEnabled: true,
+      // SEO fields
+      seoTitle: true,
+      seoDescription: true,
+      seoKeywords: true,
+      seoOgImage: true,
+      seoCanonicalUrl: true,
+      seoRobotsMeta: true,
+      seoLanguage: true,
+      seoAuthor: true,
       createdAt: true,
       updatedAt: true,
     }

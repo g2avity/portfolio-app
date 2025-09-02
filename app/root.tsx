@@ -9,6 +9,7 @@ import {
 } from "react-router";
 import type { LoaderFunctionArgs } from "react-router";
 import { getUserFromSession } from "./lib/session.server";
+import { getPortfolioConfig } from "./lib/portfolio-config.server";
 import { Nav } from "./components/nav";
 import { ErrorBoundary as AppErrorBoundary } from "./components/error-boundary";
 import { Toaster } from "./components/ui/sonner";
@@ -30,29 +31,112 @@ export const links: Route.LinksFunction = () => [
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const user = await getUserFromSession(request);
-  return { user };
+  
+  // Get theme from portfolio config if user is logged in
+  let theme = 'light'; // default for non-logged-in users
+  
+  if (user) {
+    try {
+      const portfolioConfig = await getPortfolioConfig(user.id);
+      theme = portfolioConfig?.theme || 'light';
+    } catch (error) {
+      console.error('Failed to load theme from portfolio config:', error);
+      // Keep default 'light' theme if database fails
+      theme = 'light';
+    }
+  }
+  // For non-logged-in users, we'll use CSS-only theme detection as fallback
+  
+  return { user, theme };
 }
 
 export function Layout({ children }: { children: React.ReactNode }) {
+  const { theme, user } = useLoaderData<typeof loader>();
+  
   return (
-    <html lang="en">
+    <html lang="en" className={theme === 'dark' ? 'dark' : ''}>
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <Meta />
         <Links />
+        <style
+          dangerouslySetInnerHTML={{
+            __html: `
+              /* Critical theme CSS - prevents FOUC */
+              html {
+                background-color: ${theme === 'dark' ? '#0a0a0a' : '#f9fafb'} !important;
+              }
+              body {
+                background-color: ${theme === 'dark' ? '#0a0a0a' : '#f9fafb'} !important;
+                color: ${theme === 'dark' ? '#ffffff' : '#000000'} !important;
+              }
+              /* Hide content until CSS variables are loaded */
+              body > * {
+                opacity: 0;
+                transition: opacity 0.1s ease-in;
+              }
+              body.css-loaded > * {
+                opacity: 1;
+              }
+            `,
+          }}
+        />
+        {!user && (
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `
+                // CSS-only theme detection for non-logged-in users
+                (function() {
+                  try {
+                    var theme = localStorage.getItem('theme');
+                    if (theme === 'dark') {
+                      document.documentElement.classList.add('dark');
+                      document.documentElement.style.backgroundColor = '#0a0a0a';
+                      document.body.style.backgroundColor = '#0a0a0a';
+                    } else if (theme === 'light') {
+                      document.documentElement.classList.remove('dark');
+                      document.documentElement.style.backgroundColor = '#f9fafb';
+                      document.body.style.backgroundColor = '#f9fafb';
+                    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                      document.documentElement.classList.add('dark');
+                      document.documentElement.style.backgroundColor = '#0a0a0a';
+                      document.body.style.backgroundColor = '#0a0a0a';
+                    }
+                  } catch (e) {
+                    // Fallback: use system preference
+                    if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                      document.documentElement.classList.add('dark');
+                      document.documentElement.style.backgroundColor = '#0a0a0a';
+                      document.body.style.backgroundColor = '#0a0a0a';
+                    }
+                  }
+                })();
+              `,
+            }}
+          />
+        )}
         <script
           dangerouslySetInnerHTML={{
             __html: `
+              // Mark CSS as loaded when CSS variables are available
               (function() {
-                try {
-                  var theme = localStorage.getItem('theme');
-                  if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-                    document.documentElement.classList.add('dark');
+                function checkCSSReady() {
+                  var computedStyle = getComputedStyle(document.documentElement);
+                  var bgColor = computedStyle.getPropertyValue('--bg-primary');
+                  
+                  if (bgColor && bgColor.trim() !== '') {
+                    document.body.classList.add('css-loaded');
                   } else {
-                    document.documentElement.classList.remove('dark');
+                    setTimeout(checkCSSReady, 10);
                   }
-                } catch (e) {}
+                }
+                
+                if (document.readyState === 'loading') {
+                  document.addEventListener('DOMContentLoaded', checkCSSReady);
+                } else {
+                  checkCSSReady();
+                }
               })();
             `,
           }}
@@ -68,7 +152,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
-  const { user } = useLoaderData<typeof loader>();
+  const { user, theme } = useLoaderData<typeof loader>();
   
   return (
     <>

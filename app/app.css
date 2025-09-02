@@ -1,6 +1,24 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+/* Prevent FOUC by setting default background using CSS variables */
+html {
+  background-color: var(--bg-primary, #0a0a0a) !important; /* dark background as default */
+}
+
+html:not(.dark) {
+  background-color: var(--bg-primary, #f9fafb) !important; /* light background when not dark */
+}
+
+body {
+  background-color: var(--bg-primary, #0a0a0a) !important;
+  transition: none !important; /* Disable transitions during initial load */
+}
+
+html:not(.dark) body {
+  background-color: var(--bg-primary, #f9fafb) !important;
+}
+
 /* Line clamp utilities for text truncation */
 .line-clamp-1 {
   display: -webkit-box;
