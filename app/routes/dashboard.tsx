@@ -18,7 +18,7 @@ import CustomDomainModal from "../components/custom-domain-modal";
 import ThemeStylingModal from "../components/theme-styling-modal";
 import SectionOrderingModal from "../components/section-ordering-modal";
 import SEOSettingsModal from "../components/seo-settings-modal";
-import { getUserExperiences, getUserExperienceCount, createExperience, updateExperience, deleteExperience, getUserSkills, getUserSkillCount, createSkill, updateSkill, deleteSkill, updateUserProfile, getUserCustomSections, getUserCustomSectionCount, createCustomSection, updateCustomSection, deleteCustomSection } from "../lib/db.server";
+import { getUserExperiences, getUserExperienceCount, createExperience, updateExperience, deleteExperience, getUserSkills, getUserSkillCount, createSkill, updateSkill, deleteSkill, updateUserProfile, getUserCustomSections, getUserCustomSectionCount, createCustomSection, updateCustomSection, deleteCustomSection, prisma } from "../lib/db.server";
 import { getPortfolioConfig, createPortfolioConfig, updatePortfolioConfig } from "../lib/portfolio-config.server";
 import { testBlobConnection } from "../lib/blob.server";
 import { redirect } from "react-router";
@@ -835,18 +835,29 @@ export async function action({ request }: ActionFunctionArgs) {
   if (action === "updateTheme") {
     try {
       const theme = formData.get("theme") as string;
+      const primaryColor = formData.get("primaryColor") as string;
+      const fontFamily = formData.get("fontFamily") as string;
+      const spacing = formData.get("spacing") as string;
       
-      if (!theme || !['light', 'dark'].includes(theme)) {
+      console.log('Dashboard action - received theme settings:', { theme, primaryColor, fontFamily, spacing });
+      
+      if (!theme || !['light', 'dark', 'auto'].includes(theme)) {
+        console.log('Dashboard action - invalid theme value:', theme);
         return { 
           success: false, 
           error: "Invalid theme value" 
         };
       }
 
+      console.log('Dashboard action - updating portfolio config with theme settings');
       await updatePortfolioConfig(user.id, {
-        theme: theme
+        theme: theme,
+        primaryColor: primaryColor || undefined,
+        fontFamily: fontFamily || undefined,
+        spacing: spacing || undefined
       });
 
+      console.log('Dashboard action - theme update successful');
       return { 
         success: true, 
         message: "Theme updated successfully" 
@@ -856,6 +867,43 @@ export async function action({ request }: ActionFunctionArgs) {
       return { 
         success: false, 
         error: "Failed to update theme",
+        details: error instanceof Error ? error.message : "Unknown error"
+      };
+    }
+  }
+
+  if (action === "updatePrivacy") {
+    try {
+      const isPublic = formData.get("isPublic") === 'true';
+      const searchEngineIndexing = formData.get("searchEngineIndexing") === 'true';
+      const passwordProtection = formData.get("passwordProtection") === 'true';
+      const portfolioPassword = formData.get("portfolioPassword") as string;
+      
+      console.log('Dashboard action - received privacy settings:', { 
+        isPublic, 
+        searchEngineIndexing, 
+        passwordProtection 
+      });
+      
+      // Update user's privacy settings
+      const client = await prisma;
+      await client.user.update({
+        where: { id: user.id },
+        data: {
+          isPublic: isPublic
+        }
+      });
+
+      console.log('Dashboard action - privacy update successful');
+      return { 
+        success: true, 
+        message: "Privacy settings updated successfully" 
+      };
+    } catch (error) {
+      console.error("❌ Failed to update privacy settings:", error);
+      return { 
+        success: false, 
+        error: "Failed to update privacy settings",
         details: error instanceof Error ? error.message : "Unknown error"
       };
     }
@@ -1892,6 +1940,7 @@ export default function Dashboard() {
       <PrivacySettingsModal
         isOpen={showPrivacyModal}
         onClose={() => setShowPrivacyModal(false)}
+        user={user}
       />
 
       {/* Custom Domain Modal */}
@@ -1904,6 +1953,7 @@ export default function Dashboard() {
       <ThemeStylingModal
         isOpen={showThemeModal}
         onClose={() => setShowThemeModal(false)}
+        portfolioConfig={portfolioConfig || undefined}
       />
 
       {/* Section Ordering Modal */}

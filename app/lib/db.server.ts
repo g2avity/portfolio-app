@@ -1209,3 +1209,79 @@ export async function copyTemplateToUserSection(
   
   return customSection;
 }
+
+
+// Get all users with their portfolio data for public display
+export async function getAllPublicUsers(): Promise<Array<{
+  id: string;
+  username: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  avatarUrl: string | null;
+  location: string | null;
+  bio: string | null;
+  skills: Array<{
+    id: string;
+    name: string;
+    proficiency: number | null;
+  }>;
+  experiences: Array<{
+    id: string;
+    title: string;
+    companyName: string;
+    startDate: Date;
+    endDate: Date | null;
+  }>;
+}>> {
+  const prisma = await getPrismaClient();
+  
+  const users = await prisma.user.findMany({
+    where: {
+      isPublic: true
+    },
+    select: {
+      id: true,
+      username: true,
+      firstName: true,
+      lastName: true,
+      email: true,
+      avatarUrl: true,
+      city: true,
+      state: true,
+      country: true,
+      bio: true,
+      skills: {
+        select: {
+          id: true,
+          name: true,
+          proficiency: true
+        },
+        orderBy: {
+          name: "asc"
+        }
+      },
+      experiences: {
+        select: {
+          id: true,
+          title: true,
+          companyName: true,
+          startDate: true,
+          endDate: true
+        },
+        orderBy: {
+          startDate: "desc"
+        }
+      }
+    },
+    orderBy: {
+      createdAt: "desc"
+    }
+  });
+  
+  // Transform the data to include location
+  return users.map(user => ({
+    ...user,
+    location: [user.city, user.state, user.country].filter(Boolean).join(", ") || null
+  }));
+}

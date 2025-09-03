@@ -28,12 +28,12 @@ export default function Logout() {
   }, [submit]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+    <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'var(--bg-primary)' }}>
       <div className="text-center">
-        <h1 className="text-2xl font-bold text-gray-900 mb-4">Logging out...</h1>
-        <p className="text-gray-600">Please wait while we sign you out.</p>
+        <h1 className="text-2xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>Logging out...</h1>
+        <p style={{ color: 'var(--text-secondary)' }}>Please wait while we sign you out.</p>
         <div className="mt-4">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 mx-auto" style={{ borderColor: 'var(--text-primary)' }}></div>
         </div>
       </div>
     </div>

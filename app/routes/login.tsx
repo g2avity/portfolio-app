@@ -34,17 +34,25 @@ export default function Login() {
   const error = searchParams.get("error");
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8" style={{ backgroundColor: 'var(--bg-primary)' }}>
       <div className="max-w-md w-full space-y-8">
         {message && (
-          <div className="bg-green-50 border border-green-200 rounded-md p-4">
-            <p className="text-sm text-green-800">{message}</p>
+          <div className="border rounded-md p-4" style={{ 
+            backgroundColor: 'var(--success-bg)', 
+            borderColor: 'var(--success-border)',
+            color: 'var(--success-text)'
+          }}>
+            <p className="text-sm">{message}</p>
           </div>
         )}
         
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-md p-4">
-            <p className="text-sm text-red-800">
+          <div className="border rounded-md p-4" style={{ 
+            backgroundColor: 'var(--error-bg)', 
+            borderColor: 'var(--error-border)',
+            color: 'var(--error-text)'
+          }}>
+            <p className="text-sm">
               {error === "invalid-credentials" && "Invalid email or password. Please try again."}
               {error === "missing-fields" && "Please fill in all required fields."}
               {error === "server-error" && "An error occurred. Please try again."}
@@ -54,12 +62,12 @@ export default function Login() {
         )}
         
         <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+          <h2 className="mt-6 text-center text-3xl font-extrabold" style={{ color: 'var(--text-primary)' }}>
             Sign in to your account
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
+          <p className="mt-2 text-center text-sm" style={{ color: 'var(--text-secondary)' }}>
             Or{" "}
-            <Link to="/register" className="font-medium text-indigo-600 hover:text-indigo-500">
+            <Link to="/register" className="font-medium transition-colors hover:opacity-80" style={{ color: 'var(--focus-ring)' }}>
               create a new account
             </Link>
           </p>
@@ -72,7 +80,15 @@ export default function Login() {
           <CardContent className="space-y-4">
             {/* Google OAuth Button */}
             <Form action="/auth/google" method="post">
-              <Button type="submit" className="w-full bg-white text-gray-700 border border-gray-300 hover:bg-gray-50">
+              <Button 
+                type="submit" 
+                className="w-full border hover:opacity-90 transition-opacity"
+                style={{
+                  backgroundColor: 'var(--bg-card)',
+                  borderColor: 'var(--border-color)',
+                  color: 'var(--text-primary)'
+                }}
+              >
                 <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
                   <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                   <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -85,17 +101,34 @@ export default function Login() {
 
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300" />
+                <div className="w-full border-t" style={{ borderColor: 'var(--border-color)' }} />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">Or continue with</span>
+                <span className="px-2" style={{ 
+                  backgroundColor: 'var(--bg-primary)',
+                  color: 'var(--text-muted)'
+                }}>Or continue with</span>
               </div>
             </div>
 
             {/* Email/Password Form */}
             <Form method="post" className="space-y-4">
+              <style>{`
+                .form-input {
+                  border-color: var(--border-color);
+                  background-color: var(--bg-card);
+                  color: var(--text-primary);
+                }
+                .form-input:focus {
+                  --tw-ring-color: var(--focus-ring);
+                  --tw-ring-offset-color: var(--bg-primary);
+                }
+                .form-input::placeholder {
+                  color: var(--text-muted);
+                }
+              `}</style>
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                <label htmlFor="email" className="block text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
                   Email address
                 </label>
                 <input
@@ -104,13 +137,13 @@ export default function Login() {
                   type="email"
                   autoComplete="email"
                   required
-                  className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                  className="mt-1 appearance-none relative block w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:z-10 sm:text-sm form-input"
                   placeholder="Enter your email"
                 />
               </div>
               
               <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                <label htmlFor="password" className="block text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
                   Password
                 </label>
                 <input
@@ -119,7 +152,7 @@ export default function Login() {
                   type="password"
                   autoComplete="current-password"
                   required
-                  className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                  className="mt-1 appearance-none relative block w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:z-10 sm:text-sm form-input"
                   placeholder="Enter your password"
                 />
               </div>

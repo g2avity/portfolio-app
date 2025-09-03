@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { requireUser } from "../lib/session.server";
 import { ErrorBoundary as AppErrorBoundary } from "../components/error-boundary";
+import { getPortfolioConfig } from "../lib/portfolio-config.server";
 import { 
   getUserStorageUsage, 
   listUserMediaFiles, 
@@ -54,12 +55,13 @@ export async function loader({ request }: LoaderFunctionArgs) {
   const user = await requireUser(request);
   
   try {
-    const [storageUsage, mediaFiles] = await Promise.all([
+    const [storageUsage, mediaFiles, portfolioConfig] = await Promise.all([
       getUserStorageUsage(user.id),
-      listUserMediaFiles(user.id)
+      listUserMediaFiles(user.id),
+      getPortfolioConfig(user.id)
     ]);
     
-    return { user, storageUsage, mediaFiles };
+    return { user, storageUsage, mediaFiles, portfolioConfig };
   } catch (error) {
     console.error('Failed to load media library data:', error);
     throw new Error('Failed to load media library');
@@ -150,9 +152,12 @@ export async function action({ request }: ActionFunctionArgs) {
 }
 
 export default function MediaLibrary() {
-  const { user, storageUsage, mediaFiles } = useLoaderData<typeof loader>();
+  const { user, storageUsage, mediaFiles, portfolioConfig } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
   const submit = useSubmit();
+  
+  // Extract theme from portfolio config
+  const theme = portfolioConfig?.theme || 'light';
   
   // State management
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
@@ -437,7 +442,9 @@ export default function MediaLibrary() {
                 if (e.target.files) {
                   const files = e.target.files;
                   const category = getFileCategory(files[0]);
-                  handleFileUpload(files, category);
+                  if (category) {
+                    handleFileUpload(files, category);
+                  }
                 }
               }}
             />
