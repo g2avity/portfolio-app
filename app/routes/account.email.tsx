@@ -1,16 +1,20 @@
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { ArrowLeft, Mail, Bell, Shield, Eye, Users, Settings, Send } from "lucide-react";
-import { Link } from "react-router";
+import { Link, useLoaderData } from "react-router";
 import { requireUser } from "../lib/session.server";
+import { getPortfolioConfig } from "../lib/portfolio-config.server";
 import { useState, useEffect } from "react";
 
 export async function loader({ request }: { request: Request }) {
   const user = await requireUser(request);
-  return { user };
+  const portfolioConfig = await getPortfolioConfig(user.id);
+  return { user, portfolioConfig };
 }
 
 export default function AccountEmail() {
+  const { portfolioConfig } = useLoaderData<typeof loader>();
+  const theme = portfolioConfig?.theme || 'light';
   const [from, setFrom] = useState<string | null>(null);
   
   useEffect(() => {
@@ -21,12 +25,14 @@ export default function AccountEmail() {
     // Clean up sessionStorage after reading
     sessionStorage.removeItem('emailFrom');
   }, []);
+  
+
 
   const getBackButton = () => {
     // Show placeholder while loading to prevent layout shift
     if (from === null) {
       return (
-        <div className="inline-flex items-center text-gray-600 mb-4 h-6">
+        <div className="inline-flex items-center mb-4 h-6" style={{ color: 'var(--text-secondary)' }}>
           {/* Invisible placeholder with same dimensions as back button */}
           <div className="w-4 h-4 mr-2 opacity-0">←</div>
           <span className="opacity-0">Back to Account Settings</span>
@@ -38,7 +44,8 @@ export default function AccountEmail() {
       return (
         <Link 
           to="/dashboard" 
-          className="inline-flex items-center text-gray-600 hover:text-gray-900 mb-4"
+          className="inline-flex items-center mb-4 transition-colors hover:opacity-80"
+          style={{ color: 'var(--text-secondary)' }}
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Dashboard
@@ -49,7 +56,8 @@ export default function AccountEmail() {
     return (
       <Link 
         to="/account" 
-        className="inline-flex items-center text-gray-600 hover:text-gray-900 mb-4"
+        className="inline-flex items-center mb-4 transition-colors hover:opacity-80"
+        style={{ color: 'var(--text-secondary)' }}
       >
         <ArrowLeft className="w-4 h-4 mr-2" />
         Back to Account Settings
@@ -58,13 +66,13 @@ export default function AccountEmail() {
   };
 
   return (
-    <main className="min-h-screen bg-gray-50 py-16">
+    <main className="min-h-screen py-16" style={{ backgroundColor: 'var(--bg-primary)' }}>
       <div className="container mx-auto px-4 max-w-7xl">
         {/* Header */}
         <div className="mb-8">
           {getBackButton()}
-          <h1 className="text-3xl font-bold text-gray-900">Email Preferences</h1>
-          <p className="text-gray-600 mt-2">Manage your email notifications and communication preferences</p>
+          <h1 className="text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>Email Preferences</h1>
+          <p className="mt-2" style={{ color: 'var(--text-secondary)' }}>Manage your email notifications and communication preferences</p>
         </div>
 
         {/* Email Preferences Sections */}
@@ -81,8 +89,8 @@ export default function AccountEmail() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-gray-600 mb-1">Portfolio Views</p>
-                    <p className="text-sm text-gray-500">Get notified when someone views your portfolio</p>
+                    <p className="mb-1" style={{ color: 'var(--text-secondary)' }}>Portfolio Views</p>
+                    <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Get notified when someone views your portfolio</p>
                   </div>
                   <Button variant="outline" size="sm" disabled>
                     Daily Digest
@@ -90,8 +98,8 @@ export default function AccountEmail() {
                 </div>
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-gray-600 mb-1">Engagement Metrics</p>
-                    <p className="text-sm text-gray-500">Weekly summary of portfolio performance</p>
+                    <p className="mb-1" style={{ color: 'var(--text-secondary)' }}>Engagement Metrics</p>
+                    <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Weekly summary of portfolio performance</p>
                   </div>
                   <Button variant="outline" size="sm" disabled>
                     Weekly
@@ -113,8 +121,8 @@ export default function AccountEmail() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-gray-600 mb-1">Login Alerts</p>
-                    <p className="text-sm text-gray-500">Immediate notification of new login attempts</p>
+                    <p className="mb-1" style={{ color: 'var(--text-secondary)' }}>Login Alerts</p>
+                    <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Immediate notification of new login attempts</p>
                   </div>
                   <Button variant="outline" size="sm" disabled>
                     Real-time
@@ -122,8 +130,8 @@ export default function AccountEmail() {
                 </div>
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-gray-600 mb-1">Password Changes</p>
-                    <p className="text-sm text-gray-500">Confirm when your password is updated</p>
+                    <p className="style={{ color: 'var(--text-secondary)' }} mb-1">Password Changes</p>
+                    <p className="text-sm style={{ color: 'var(--text-muted)' }}">Confirm when your password is updated</p>
                   </div>
                   <Button variant="outline" size="sm" disabled>
                     Always
@@ -131,8 +139,8 @@ export default function AccountEmail() {
                 </div>
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-gray-600 mb-1">Two-Factor Setup</p>
-                    <p className="text-sm text-gray-500">Notifications about 2FA configuration</p>
+                    <p className="style={{ color: 'var(--text-secondary)' }} mb-1">Two-Factor Setup</p>
+                    <p className="text-sm style={{ color: 'var(--text-muted)' }}">Notifications about 2FA configuration</p>
                   </div>
                   <Button variant="outline" size="sm" disabled>
                     Always
@@ -154,8 +162,8 @@ export default function AccountEmail() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-gray-600 mb-1">New Features</p>
-                    <p className="text-sm text-gray-500">Learn about new portfolio features and tools</p>
+                    <p className="style={{ color: 'var(--text-secondary)' }} mb-1">New Features</p>
+                    <p className="text-sm style={{ color: 'var(--text-muted)' }}">Learn about new portfolio features and tools</p>
                   </div>
                   <Button variant="outline" size="sm" disabled>
                     Weekly
@@ -163,8 +171,8 @@ export default function AccountEmail() {
                 </div>
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-gray-600 mb-1">Platform Announcements</p>
-                    <p className="text-sm text-gray-500">Important updates about the portfolio platform</p>
+                    <p className="style={{ color: 'var(--text-secondary)' }} mb-1">Platform Announcements</p>
+                    <p className="text-sm style={{ color: 'var(--text-muted)' }}">Important updates about the portfolio platform</p>
                   </div>
                   <Button variant="outline" size="sm" disabled>
                     Important Only
@@ -172,8 +180,8 @@ export default function AccountEmail() {
                 </div>
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-gray-600 mb-1">Tips & Best Practices</p>
-                    <p className="text-sm text-gray-500">Helpful content to improve your portfolio</p>
+                    <p className="style={{ color: 'var(--text-secondary)' }} mb-1">Tips & Best Practices</p>
+                    <p className="text-sm style={{ color: 'var(--text-muted)' }}">Helpful content to improve your portfolio</p>
                   </div>
                   <Button variant="outline" size="sm" disabled>
                     Monthly
@@ -195,8 +203,8 @@ export default function AccountEmail() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-gray-600 mb-1">Email Format</p>
-                    <p className="text-sm text-gray-500">Choose between HTML and plain text emails</p>
+                    <p className="style={{ color: 'var(--text-secondary)' }} mb-1">Email Format</p>
+                    <p className="text-sm style={{ color: 'var(--text-muted)' }}">Choose between HTML and plain text emails</p>
                   </div>
                   <Button variant="outline" size="sm" disabled>
                     HTML
@@ -204,8 +212,8 @@ export default function AccountEmail() {
                 </div>
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-gray-600 mb-1">Delivery Time</p>
-                    <p className="text-sm text-gray-500">Preferred time to receive daily/weekly emails</p>
+                    <p className="style={{ color: 'var(--text-secondary)' }} mb-1">Delivery Time</p>
+                    <p className="text-sm style={{ color: 'var(--text-muted)' }}">Preferred time to receive daily/weekly emails</p>
                   </div>
                   <Button variant="outline" size="sm" disabled>
                     9:00 AM
@@ -213,8 +221,8 @@ export default function AccountEmail() {
                 </div>
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-gray-600 mb-1">Time Zone</p>
-                    <p className="text-sm text-gray-500">Your local time zone for email scheduling</p>
+                    <p className="style={{ color: 'var(--text-secondary)' }} mb-1">Time Zone</p>
+                    <p className="text-sm style={{ color: 'var(--text-muted)' }}">Your local time zone for email scheduling</p>
                   </div>
                   <Button variant="outline" size="sm" disabled>
                     Auto-detect
@@ -240,25 +248,37 @@ export default function AccountEmail() {
         {/* Email Summary */}
         <Card className="mt-8">
           <CardHeader>
-            <CardTitle>Email Summary</CardTitle>
+            <CardTitle style={{ color: 'var(--text-primary)' }}>Email Summary</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-              <div className="text-center p-4 bg-blue-50 rounded-lg">
+              <div className="text-center p-4 rounded-lg border" style={{ 
+                backgroundColor: 'var(--bg-card-header)', 
+                borderColor: 'var(--border-color)' 
+              }}>
                 <p className="text-2xl font-bold text-blue-600">12</p>
-                <p className="text-blue-800">Emails this month</p>
+                <p style={{ color: 'var(--text-primary)' }}>Emails this month</p>
               </div>
-              <div className="text-center p-4 bg-green-50 rounded-lg">
+              <div className="text-center p-4 rounded-lg border" style={{ 
+                backgroundColor: 'var(--bg-card-header)', 
+                borderColor: 'var(--border-color)' 
+              }}>
                 <p className="text-2xl font-bold text-green-600">8</p>
-                <p className="text-green-800">Security alerts</p>
+                <p style={{ color: 'var(--text-primary)' }}>Security alerts</p>
               </div>
-              <div className="text-center p-4 bg-orange-50 rounded-lg">
+              <div className="text-center p-4 rounded-lg border" style={{ 
+                backgroundColor: 'var(--bg-card-header)', 
+                borderColor: 'var(--border-color)' 
+              }}>
                 <p className="text-2xl font-bold text-orange-600">4</p>
-                <p className="text-orange-800">Portfolio updates</p>
+                <p style={{ color: 'var(--text-primary)' }}>Portfolio updates</p>
               </div>
             </div>
-            <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-              <p className="text-gray-600 text-sm">
+            <div className="mt-4 p-3 rounded-lg border" style={{ 
+              backgroundColor: 'var(--bg-card-header)', 
+              borderColor: 'var(--border-color)' 
+            }}>
+              <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
                 <strong>Note:</strong> Most email preferences are currently set to default values. 
                 Customization options will be available in future updates. You can always 
                 unsubscribe from specific email types using the links at the bottom of each email.

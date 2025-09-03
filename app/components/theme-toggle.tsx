@@ -19,6 +19,8 @@ export function ThemeToggle() {
     const newTheme = !isDark;
     setIsDark(newTheme);
     
+    console.log('Theme toggle - switching to:', newTheme ? 'dark' : 'light');
+    
     // Update UI immediately
     if (newTheme) {
       document.documentElement.classList.add('dark');
@@ -33,6 +35,7 @@ export function ThemeToggle() {
     const formData = new FormData();
     formData.append("_action", "updateTheme");
     formData.append("theme", newTheme ? 'dark' : 'light');
+    console.log('Theme toggle - submitting to database:', newTheme ? 'dark' : 'light');
     submit(formData, { method: "post" });
   };
 

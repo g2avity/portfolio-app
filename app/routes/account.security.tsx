@@ -1,17 +1,67 @@
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
-import { ArrowLeft, Shield, Lock, Key, Smartphone, Clock, AlertTriangle } from "lucide-react";
-import { Link } from "react-router";
+import { ArrowLeft, Shield, Lock, Key, Smartphone, Clock, AlertTriangle, Eye, EyeOff, Globe } from "lucide-react";
+import { Link, useLoaderData, useSubmit, useActionData } from "react-router";
 import { requireUser } from "../lib/session.server";
+import { getPortfolioConfig } from "../lib/portfolio-config.server";
+import { prisma } from "../lib/db.server";
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 
 export async function loader({ request }: { request: Request }) {
   const user = await requireUser(request);
-  return { user };
+  const portfolioConfig = await getPortfolioConfig(user.id);
+  return { user, portfolioConfig };
+}
+
+export async function action({ request }: { request: Request }) {
+  const user = await requireUser(request);
+  const formData = await request.formData();
+  const action = formData.get("_action");
+
+  if (action === "updatePrivacy") {
+    try {
+      const isPublic = formData.get("isPublic") === 'true';
+      
+      console.log('Account Security action - received privacy update:', { 
+        isPublic, 
+        userId: user.id 
+      });
+      
+      // Update user's privacy settings
+      const client = await prisma;
+      await client.user.update({
+        where: { id: user.id },
+        data: {
+          isPublic: isPublic
+        }
+      });
+
+      console.log('Account Security action - privacy update successful');
+      return { 
+        success: true, 
+        message: "Privacy settings updated successfully" 
+      };
+    } catch (error) {
+      console.error("❌ Failed to update privacy settings:", error);
+      return { 
+        success: false, 
+        error: "Failed to update privacy settings",
+        details: error instanceof Error ? error.message : "Unknown error"
+      };
+    }
+  }
+
+  return { success: false, error: "Unknown action" };
 }
 
 export default function AccountSecurity() {
+  const { user, portfolioConfig } = useLoaderData<typeof loader>();
+  const actionData = useActionData<typeof action>();
+  const theme = portfolioConfig?.theme || 'light';
+  const submit = useSubmit();
   const [from, setFrom] = useState<string | null>(null);
+  const [isPublic, setIsPublic] = useState(user?.isPublic || false);
   
   useEffect(() => {
     // Read from sessionStorage on component mount
@@ -21,12 +71,40 @@ export default function AccountSecurity() {
     // Clean up sessionStorage after reading
     sessionStorage.removeItem('securityFrom');
   }, []);
+
+  useEffect(() => {
+    if (user) {
+      setIsPublic(user.isPublic || false);
+    }
+  }, [user]);
+
+  // Handle action data and show toasts
+  useEffect(() => {
+    if (actionData) {
+      if (actionData.success) {
+        toast.success(actionData.message || "Settings updated successfully");
+      } else {
+        toast.error(actionData.error || "Failed to update settings");
+      }
+    }
+  }, [actionData]);
+
+  const handlePrivacyToggle = () => {
+    const newIsPublic = !isPublic;
+    setIsPublic(newIsPublic);
+    
+    const formData = new FormData();
+    formData.append('_action', 'updatePrivacy');
+    formData.append('isPublic', newIsPublic.toString());
+    
+    submit(formData, { method: 'post' });
+  };
   
   const getBackButton = () => {
     // Show placeholder while loading to prevent layout shift
     if (from === null) {
       return (
-        <div className="inline-flex items-center text-gray-600 mb-4 h-6">
+        <div className="inline-flex items-center mb-4 h-6" style={{ color: 'var(--text-secondary)' }}>
           {/* Invisible placeholder with same dimensions as back button */}
           <div className="w-4 h-4 mr-2 opacity-0">←</div>
           <span className="opacity-0">Back to Account Settings</span>
@@ -38,7 +116,8 @@ export default function AccountSecurity() {
       return (
         <Link 
           to="/dashboard" 
-          className="inline-flex items-center text-gray-600 hover:text-gray-900 mb-4"
+          className="inline-flex items-center mb-4 transition-colors hover:opacity-80"
+          style={{ color: 'var(--text-secondary)' }}
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Dashboard
@@ -49,7 +128,8 @@ export default function AccountSecurity() {
     return (
       <Link 
         to="/account" 
-        className="inline-flex items-center text-gray-600 hover:text-gray-900 mb-4"
+        className="inline-flex items-center mb-4 transition-colors hover:opacity-80"
+        style={{ color: 'var(--text-secondary)' }}
       >
         <ArrowLeft className="w-4 h-4 mr-2" />
         Back to Account Settings
@@ -58,13 +138,69 @@ export default function AccountSecurity() {
   };
 
   return (
-    <main className="min-h-screen bg-gray-50 py-16">
+    <main className="min-h-screen py-16" style={{ backgroundColor: 'var(--bg-primary)' }}>
       <div className="container mx-auto px-4 max-w-7xl">
         {/* Header */}
         <div className="mb-8">
           {getBackButton()}
-          <h1 className="text-3xl font-bold text-gray-900">Security Settings</h1>
-          <p className="text-gray-600 mt-2">Manage your account security, authentication, and privacy</p>
+          <h1 className="text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>Security Settings</h1>
+          <p className="mt-2" style={{ color: 'var(--text-secondary)' }}>Manage your account security, authentication, and privacy</p>
+        </div>
+
+        {/* Privacy Control */}
+        <div className="mb-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                {isPublic ? (
+                  <Globe className="w-5 h-5 text-green-600" />
+                ) : (
+                  <EyeOff className="w-5 h-5 text-orange-600" />
+                )}
+                Profile Visibility
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="mb-2" style={{ color: 'var(--text-secondary)' }}>
+                    {isPublic 
+                      ? "Your portfolio is visible to the public and can be found on the portfolios page."
+                      : "Your portfolio is private and only visible to you."
+                    }
+                  </p>
+                  <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+                    {isPublic 
+                      ? "Anyone can view your portfolio at /portfolios/{username}"
+                      : "Your portfolio will not appear in public listings"
+                    }
+                  </p>
+                </div>
+                <Button 
+                  onClick={handlePrivacyToggle}
+                  variant={isPublic ? "outline" : "default"}
+                  className="flex items-center gap-2"
+                  style={{
+                    backgroundColor: isPublic ? 'var(--bg-card)' : 'var(--focus-ring)',
+                    borderColor: isPublic ? 'var(--border-color)' : 'var(--focus-ring)',
+                    color: isPublic ? 'var(--text-primary)' : 'white'
+                  }}
+                >
+                  {isPublic ? (
+                    <>
+                      <EyeOff className="w-4 h-4" />
+                      Make Private
+                    </>
+                  ) : (
+                    <>
+                      <Eye className="w-4 h-4" />
+                      Make Public
+                    </>
+                  )}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Security Sections */}

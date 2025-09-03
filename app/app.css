@@ -266,10 +266,16 @@ body {
   /* Status Colors */
   --success-bg: #f0fdf4;         /* Success background */
   --success-text: #166534;       /* Success text */
+  --success-border: #bbf7d0;     /* Success border */
   --warning-bg: #fffbeb;         /* Warning background */
   --warning-text: #92400e;       /* Warning text */
+  --warning-border: #fde68a;     /* Warning border */
   --error-bg: #fef2f2;           /* Error background */
   --error-text: #dc2626;         /* Error text */
+  --error-border: #fecaca;       /* Error border */
+  --info-bg: #eff6ff;            /* Info background */
+  --info-text: #1e40af;          /* Info text */
+  --info-border: #bfdbfe;        /* Info border */
 }
 
 .dark {
@@ -303,10 +309,16 @@ body {
   /* Status Colors */
   --success-bg: #064e3b;         /* Success background */
   --success-text: #6ee7b7;       /* Success text */
+  --success-border: #065f46;     /* Success border */
   --warning-bg: #451a03;         /* Warning background */
   --warning-text: #fbbf24;       /* Warning text */
+  --warning-border: #78350f;     /* Warning border */
   --error-bg: #450a0a;           /* Error background */
   --error-text: #fca5a5;         /* Error text */
+  --error-border: #7f1d1d;       /* Error border */
+  --info-bg: #1e3a8a;            /* Info background */
+  --info-text: #93c5fd;          /* Info text */
+  --info-border: #1e40af;        /* Info border */
 }
 
 @layer base {

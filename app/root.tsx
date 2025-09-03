@@ -53,6 +53,9 @@ export async function loader({ request }: LoaderFunctionArgs) {
 export function Layout({ children }: { children: React.ReactNode }) {
   const { theme, user } = useLoaderData<typeof loader>();
   
+  // Debug: Log the theme to see what we're getting
+  console.log('Root layout - theme:', theme, 'user:', user?.id);
+  
   return (
     <html lang="en" className={theme === 'dark' ? 'dark' : ''}>
       <head>

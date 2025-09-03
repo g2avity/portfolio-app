@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Modal } from "./ui/modal";
+import { useSubmit, useActionData } from "react-router";
+import { toast } from "sonner";
 import { 
   Eye, 
   EyeOff, 
@@ -20,6 +22,10 @@ import {
 interface PrivacySettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
+  user?: {
+    id: string;
+    isPublic: boolean;
+  };
 }
 
 interface Invite {
@@ -28,8 +34,12 @@ interface Invite {
   status: 'pending' | 'accepted' | 'expired';
 }
 
-export default function PrivacySettingsModal({ isOpen, onClose }: PrivacySettingsModalProps) {
-  const [portfolioVisibility, setPortfolioVisibility] = useState<'public' | 'private' | 'invite'>('public');
+export default function PrivacySettingsModal({ isOpen, onClose, user }: PrivacySettingsModalProps) {
+  const submit = useSubmit();
+  const actionData = useActionData<{ success: boolean; message?: string; error?: string }>();
+  const [portfolioVisibility, setPortfolioVisibility] = useState<'public' | 'private' | 'invite'>(
+    user?.isPublic ? 'public' : 'private'
+  );
   const [searchEngineIndexing, setSearchEngineIndexing] = useState(true);
   const [passwordProtection, setPasswordProtection] = useState(false);
   const [portfolioPassword, setPortfolioPassword] = useState('');
@@ -38,6 +48,24 @@ export default function PrivacySettingsModal({ isOpen, onClose }: PrivacySetting
     { id: '1', email: 'colleague@company.com', status: 'pending' },
     { id: '2', email: 'client@business.com', status: 'accepted' }
   ]);
+
+  // Update state when user data changes
+  useEffect(() => {
+    if (user) {
+      setPortfolioVisibility(user.isPublic ? 'public' : 'private');
+    }
+  }, [user]);
+
+  // Handle action data and show toasts
+  useEffect(() => {
+    if (actionData) {
+      if (actionData.success) {
+        toast.success(actionData.message || "Privacy settings updated successfully");
+      } else {
+        toast.error(actionData.error || "Failed to update privacy settings");
+      }
+    }
+  }, [actionData]);
 
   const handleAddInvite = () => {
     if (inviteEmail.trim() && !invites.find(invite => invite.email === inviteEmail.trim())) {
@@ -56,14 +84,16 @@ export default function PrivacySettingsModal({ isOpen, onClose }: PrivacySetting
   };
 
   const handleSave = () => {
-    // TODO: Save privacy settings to backend
-    console.log('Saving privacy settings:', {
-      portfolioVisibility,
-      searchEngineIndexing,
-      passwordProtection,
-      portfolioPassword,
-      invites
-    });
+    const formData = new FormData();
+    formData.append('_action', 'updatePrivacy');
+    formData.append('isPublic', portfolioVisibility === 'public' ? 'true' : 'false');
+    formData.append('searchEngineIndexing', searchEngineIndexing.toString());
+    formData.append('passwordProtection', passwordProtection.toString());
+    if (passwordProtection && portfolioPassword) {
+      formData.append('portfolioPassword', portfolioPassword);
+    }
+    
+    submit(formData, { method: 'post' });
     onClose();
   };
 

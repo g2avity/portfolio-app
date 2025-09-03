@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
 import { Label } from "./ui/label";
+import { useSubmit } from "react-router";
 import { 
   Palette, 
   Type, 
@@ -19,6 +20,12 @@ import {
 interface ThemeStylingModalProps {
   isOpen: boolean;
   onClose: () => void;
+  portfolioConfig?: {
+    theme?: string;
+    primaryColor?: string;
+    fontFamily?: string;
+    spacing?: string;
+  };
 }
 
 interface ThemeSettings {
@@ -61,7 +68,7 @@ const CARD_STYLES = [
   { value: 'outlined', label: 'Outlined', description: 'Subtle border emphasis' }
 ];
 
-export default function ThemeStylingModal({ isOpen, onClose }: ThemeStylingModalProps) {
+export default function ThemeStylingModal({ isOpen, onClose, portfolioConfig }: ThemeStylingModalProps) {
   const [settings, setSettings] = useState<ThemeSettings>({
     colorScheme: 'light',
     primaryColor: '#3B82F6',
@@ -71,20 +78,22 @@ export default function ThemeStylingModal({ isOpen, onClose }: ThemeStylingModal
   });
 
   const [isPreviewMode, setIsPreviewMode] = useState(false);
+  const submit = useSubmit();
 
-  // Load saved theme settings on mount
+  // Load theme settings from portfolioConfig on mount
   useEffect(() => {
-    const savedTheme = localStorage.getItem('portfolio-theme');
-    if (savedTheme) {
-      try {
-        const parsed = JSON.parse(savedTheme);
-        setSettings(parsed);
-        applyTheme(parsed);
-      } catch (error) {
-        console.error('Failed to parse saved theme:', error);
-      }
+    if (portfolioConfig) {
+      const newSettings: ThemeSettings = {
+        colorScheme: (portfolioConfig.theme as 'light' | 'dark' | 'auto') || 'light',
+        primaryColor: portfolioConfig.primaryColor || '#3B82F6',
+        fontFamily: portfolioConfig.fontFamily || 'inter',
+        spacing: (portfolioConfig.spacing as 'compact' | 'comfortable' | 'spacious') || 'comfortable',
+        cardStyle: 'rounded' // Default for now
+      };
+      setSettings(newSettings);
+      applyTheme(newSettings);
     }
-  }, []);
+  }, [portfolioConfig]);
 
   // Apply theme to document
   const applyTheme = (theme: ThemeSettings) => {
@@ -110,17 +119,27 @@ export default function ThemeStylingModal({ isOpen, onClose }: ThemeStylingModal
     root.style.setProperty('--card-style', theme.cardStyle);
   };
 
-  // Handle setting changes
+  // Handle setting changes (preview only, don't save yet)
   const handleSettingChange = (key: keyof ThemeSettings, value: any) => {
     const newSettings = { ...settings, [key]: value };
     setSettings(newSettings);
     applyTheme(newSettings);
-    
-    // Save to localStorage
-    localStorage.setItem('portfolio-theme', JSON.stringify(newSettings));
+    // Don't save to database yet - wait for Save Changes button
   };
 
-  // Reset to defaults
+  // Save changes to database
+  const handleSaveChanges = () => {
+    const formData = new FormData();
+    formData.append("_action", "updateTheme");
+    formData.append("theme", settings.colorScheme);
+    formData.append("primaryColor", settings.primaryColor);
+    formData.append("fontFamily", settings.fontFamily);
+    formData.append("spacing", settings.spacing);
+    submit(formData, { method: "post" });
+    onClose(); // Close modal after saving
+  };
+
+  // Reset to defaults (preview only, don't save yet)
   const handleReset = () => {
     const defaultSettings: ThemeSettings = {
       colorScheme: 'light',
@@ -132,7 +151,7 @@ export default function ThemeStylingModal({ isOpen, onClose }: ThemeStylingModal
     
     setSettings(defaultSettings);
     applyTheme(defaultSettings);
-    localStorage.setItem('portfolio-theme', JSON.stringify(defaultSettings));
+    // Don't save to database yet - wait for Save Changes button
   };
 
   // Preview mode toggle
@@ -392,7 +411,7 @@ export default function ThemeStylingModal({ isOpen, onClose }: ThemeStylingModal
             <Button variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button onClick={onClose}>
+            <Button onClick={handleSaveChanges}>
               Save Changes
             </Button>
           </div>

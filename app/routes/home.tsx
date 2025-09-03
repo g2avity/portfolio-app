@@ -22,8 +22,15 @@ export default function Home() {
   return (
     <>
       {message && (
-        <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-50 bg-green-50 border border-green-200 rounded-md p-4 shadow-lg">
-          <p className="text-sm text-green-800">{message}</p>
+        <div 
+          className="fixed top-20 left-1/2 transform -translate-x-1/2 z-50 rounded-md p-4 shadow-lg border"
+          style={{ 
+            backgroundColor: 'var(--success-bg)', 
+            borderColor: 'var(--success-border)',
+            color: 'var(--success-text)'
+          }}
+        >
+          <p className="text-sm">{message}</p>
         </div>
       )}
       <Hero />
