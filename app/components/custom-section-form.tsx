@@ -17,6 +17,7 @@ interface CustomSectionFormData {
   title: string;
   description: string;
   type: string;
+  isPublic: boolean;
 }
 
 interface CustomSectionFormProps {
@@ -30,6 +31,7 @@ export function CustomSectionForm({ onClose, initialData, mode }: CustomSectionF
     title: initialData?.title || "",
     description: initialData?.description || "",
     type: initialData?.type || "",
+    isPublic: initialData?.isPublic ?? true,
   });
 
   const [errors, setErrors] = useState<Partial<CustomSectionFormData>>({});
@@ -216,7 +218,8 @@ export function CustomSectionForm({ onClose, initialData, mode }: CustomSectionF
                   type="checkbox"
                   id="isPublic"
                   name="isPublic"
-                  defaultChecked={true}
+                  checked={formData.isPublic}
+                  onChange={(e) => setFormData(prev => ({ ...prev, isPublic: e.target.checked }))}
                   className="rounded border-gray-300"
                 />
                 <Label htmlFor="isPublic" className="text-sm">
