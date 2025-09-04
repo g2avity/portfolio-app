@@ -246,17 +246,41 @@ export function CustomSectionDisplay({
                   const fieldValue = entry[fieldName];
                   if (!fieldValue) return null;
                   
+                  // Check if this is a tags field by looking at the section template
+                  const fieldConfig = section.content?.template?.[fieldName];
+                  const isTagsField = fieldConfig?.type === 'tags';
+                  
                   return (
                     <div key={fieldName}>
                       <label className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--text-secondary)' }}>
                         {fieldName.charAt(0).toUpperCase() + fieldName.slice(1)}
                       </label>
-                      <TruncatedField 
-                        content={fieldValue} 
-                        maxChars={300}
-                        className="mt-1"
-                        isExpanded={isEntryExpanded(entry.id)}
-                      />
+                      
+                      {isTagsField && Array.isArray(fieldValue) ? (
+                        // Render tags as badges
+                        <div className="flex flex-wrap gap-2 mt-1">
+                          {fieldValue.map((tag: string, index: number) => (
+                            <span 
+                              key={index}
+                              className="px-2 py-1 rounded-full text-sm" 
+                              style={{ 
+                                backgroundColor: 'var(--success-bg)', 
+                                color: 'var(--success-text)' 
+                              }}
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        // Render other fields as text with truncation
+                        <TruncatedField 
+                          content={Array.isArray(fieldValue) ? fieldValue.join(', ') : fieldValue} 
+                          maxChars={300}
+                          className="mt-1"
+                          isExpanded={isEntryExpanded(entry.id)}
+                        />
+                      )}
                     </div>
                   );
                 })}

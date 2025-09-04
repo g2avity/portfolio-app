@@ -14,6 +14,7 @@ interface SkillFormData {
   category: string;
   proficiency: number;
   yearsOfExperience: number;
+  isPublic: boolean;
 }
 
 interface SkillFormErrors {
@@ -59,21 +60,26 @@ export function SkillsForm({ onClose, initialData, mode }: SkillFormProps) {
     category: initialData?.category || "",
     proficiency: initialData?.proficiency || 3,
     yearsOfExperience: initialData?.yearsOfExperience || 1,
+    isPublic: initialData?.isPublic ?? true,
   });
 
   const [errors, setErrors] = useState<SkillFormErrors>({});
+  const [selectedProficiency, setSelectedProficiency] = useState<number>(formData.proficiency);
 
   // Update form data when initialData changes
   useEffect(() => {
     if (initialData) {
-      setFormData({
+      const newFormData = {
         id: initialData.id,
         name: initialData.name || "",
         description: initialData.description || "",
         category: initialData.category || "",
         proficiency: initialData.proficiency || 3,
         yearsOfExperience: initialData.yearsOfExperience || 1,
-      });
+        isPublic: initialData.isPublic ?? true,
+      };
+      setFormData(newFormData);
+      setSelectedProficiency(newFormData.proficiency);
     }
   }, [initialData]);
 
@@ -150,9 +156,13 @@ export function SkillsForm({ onClose, initialData, mode }: SkillFormProps) {
               id="category"
               name="category"
               defaultValue={formData.category}
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                errors.category ? "border-red-500" : "border-gray-300"
-              }`}
+              className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2"
+              style={{
+                borderColor: errors.category ? 'var(--error-border)' : 'var(--border-color)',
+                backgroundColor: 'var(--bg-card-content)',
+                color: 'var(--text-primary)',
+                focusRingColor: 'var(--focus-ring)'
+              }}
               required
             >
               <option value="">Select a category</option>
@@ -177,23 +187,28 @@ export function SkillsForm({ onClose, initialData, mode }: SkillFormProps) {
               {PROFICIENCY_LEVELS.map((level) => (
                 <label
                   key={level.value}
-                  className={`flex items-center p-3 border rounded-lg cursor-pointer transition-colors ${
-                    formData.proficiency === level.value
-                      ? "border-blue-500 bg-blue-50"
-                      : "border-gray-200 hover:border-gray-300"
-                  }`}
+                  className="flex items-center p-3 border rounded-lg cursor-pointer transition-colors"
+                  style={{
+                    borderColor: selectedProficiency === level.value 
+                      ? 'var(--focus-ring)' 
+                      : 'var(--border-color)',
+                    backgroundColor: selectedProficiency === level.value 
+                      ? 'var(--focus-ring-bg)' 
+                      : 'var(--bg-card-content)'
+                  }}
                 >
                                       <input
                       type="radio"
                       name="proficiency"
                       value={level.value.toString()}
-                      defaultChecked={formData.proficiency === level.value}
+                      checked={selectedProficiency === level.value}
+                      onChange={() => setSelectedProficiency(level.value)}
                       className="mr-3"
                       required
                     />
                   <div>
-                    <div className="font-medium">{level.label}</div>
-                    <div className="text-sm text-gray-600">{level.description}</div>
+                    <div className="font-medium" style={{ color: 'var(--text-primary)' }}>{level.label}</div>
+                    <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>{level.description}</div>
                   </div>
                 </label>
               ))}
@@ -239,6 +254,19 @@ export function SkillsForm({ onClose, initialData, mode }: SkillFormProps) {
             {errors.description && (
               <p className="text-sm text-red-600">{errors.description}</p>
             )}
+          </div>
+
+          {/* Public Visibility Toggle */}
+          <div className="flex items-center space-x-2">
+            <input
+              id="isPublic"
+              name="isPublic"
+              type="checkbox"
+              defaultChecked={formData.isPublic}
+              className="rounded"
+              style={{ borderColor: 'var(--border-color)' }}
+            />
+            <Label htmlFor="isPublic">Show this skill on my public portfolio</Label>
           </div>
 
           {/* Form Actions */}

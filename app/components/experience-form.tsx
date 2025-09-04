@@ -15,6 +15,7 @@ interface ExperienceFormData {
   endDate: string;
   isCurrent: boolean;
   location: string;
+  isPublic: boolean;
 }
 
 interface ExperienceFormProps {
@@ -32,6 +33,7 @@ export function ExperienceForm({ mode, initialData, onClose }: ExperienceFormPro
     endDate: initialData?.endDate || "",
     isCurrent: initialData?.isCurrent || false,
     location: initialData?.location || "",
+    isPublic: initialData?.isPublic ?? true,
   });
 
   const [errors, setErrors] = useState<Partial<ExperienceFormData>>({});
@@ -183,6 +185,18 @@ export function ExperienceForm({ mode, initialData, onClose }: ExperienceFormPro
               className="rounded border-gray-300"
             />
             <Label htmlFor="isCurrent">This is my current position</Label>
+          </div>
+
+          {/* Public Visibility Toggle */}
+          <div className="flex items-center space-x-2">
+            <input
+              id="isPublic"
+              name="isPublic"
+              type="checkbox"
+              defaultChecked={formData.isPublic}
+              className="rounded border-gray-300"
+            />
+            <Label htmlFor="isPublic">Show this experience on my public portfolio</Label>
           </div>
 
           {/* Description */}

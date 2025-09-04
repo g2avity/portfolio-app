@@ -126,6 +126,7 @@ export async function action({ request }: ActionFunctionArgs) {
     const endDate = formData.get("endDate") ? new Date(formData.get("endDate") as string) : undefined;
     const isCurrent = formData.get("isCurrent") === "on";
     const location = formData.get("location") as string;
+    const isPublic = formData.get("isPublic") === "on";
     
     if (!title || !companyName || !description || !startDate) {
       return { 
@@ -144,6 +145,7 @@ export async function action({ request }: ActionFunctionArgs) {
         endDate,
         isCurrent,
         location,
+        isPublic,
         userId: user.id,
       });
       
@@ -172,6 +174,7 @@ export async function action({ request }: ActionFunctionArgs) {
     const endDate = formData.get("endDate") ? new Date(formData.get("endDate") as string) : undefined;
     const isCurrent = formData.get("isCurrent") === "on";
     const location = formData.get("location") as string;
+    const isPublic = formData.get("isPublic") === "on";
     
     if (!experienceId || !title || !companyName || !description || !startDate) {
       return { 
@@ -191,6 +194,7 @@ export async function action({ request }: ActionFunctionArgs) {
         endDate,
         isCurrent,
         location,
+        isPublic,
         userId: user.id,
       });
       
@@ -248,6 +252,7 @@ export async function action({ request }: ActionFunctionArgs) {
     const category = formData.get("category") as string;
     const proficiency = formData.get("proficiency") ? parseInt(formData.get("proficiency") as string) : undefined;
     const yearsOfExperience = formData.get("yearsOfExperience") ? parseInt(formData.get("yearsOfExperience") as string) : undefined;
+    const isPublic = formData.get("isPublic") === "on";
     
     console.log("🔍 Skill form data received:", {
       name: name || "EMPTY",
@@ -273,6 +278,7 @@ export async function action({ request }: ActionFunctionArgs) {
         category,
         proficiency,
         yearsOfExperience,
+        isPublic,
         userId: user.id,
       });
       
@@ -299,6 +305,7 @@ export async function action({ request }: ActionFunctionArgs) {
     const category = formData.get("category") as string;
     const proficiency = formData.get("proficiency") ? parseInt(formData.get("proficiency") as string) : undefined;
     const yearsOfExperience = formData.get("yearsOfExperience") ? parseInt(formData.get("yearsOfExperience") as string) : undefined;
+    const isPublic = formData.get("isPublic") === "on";
     
     if (!skillId || !name || !description) {
       return { 
@@ -316,6 +323,7 @@ export async function action({ request }: ActionFunctionArgs) {
         category,
         proficiency,
         yearsOfExperience,
+        isPublic,
         userId: user.id,
       });
       
@@ -1199,8 +1207,8 @@ export default function Dashboard() {
           }
         }
         
-        // Trigger data refresh by reloading the page for all successful actions
-        window.location.reload();
+        // Note: React Router automatically re-runs the loader after action completion
+        // No manual reload needed
       } else {
         // Handle errors
         console.error("❌ Action failed:", actionData);
@@ -1377,7 +1385,10 @@ export default function Dashboard() {
                     
                     {/* Ghost Add Card */}
                     <div 
-                      onClick={() => setShowExperienceForm(true)}
+                      onClick={() => {
+                        setEditingExperience(null);
+                        setShowExperienceForm(true);
+                      }}
                       className="group cursor-pointer"
                     >
                       <div className="border-2 border-dashed rounded-lg p-4 transition-all duration-200" style={{ 
@@ -1448,7 +1459,10 @@ export default function Dashboard() {
                     
                     {/* Ghost Add Card - Always shown when there are experiences */}
                     <div 
-                      onClick={() => setShowExperienceForm(true)}
+                      onClick={() => {
+                        setEditingExperience(null);
+                        setShowExperienceForm(true);
+                      }}
                       className="group cursor-pointer"
                     >
                       <div className="border-2 border-dashed rounded-lg p-4 transition-all duration-200" style={{ 
@@ -1491,7 +1505,10 @@ export default function Dashboard() {
                     
                     {/* Ghost Add Card */}
                     <div 
-                      onClick={() => setShowSkillsForm(true)}
+                      onClick={() => {
+                        setEditingSkill(null);
+                        setShowSkillsForm(true);
+                      }}
                       className="group cursor-pointer"
                     >
                       <div className="border-2 border-dashed rounded-lg p-4 transition-all duration-200" style={{ 
@@ -1583,7 +1600,10 @@ export default function Dashboard() {
                     
                     {/* Ghost Add Card - Always shown when there are skills */}
                     <div 
-                      onClick={() => setShowSkillsForm(true)}
+                      onClick={() => {
+                        setEditingSkill(null);
+                        setShowSkillsForm(true);
+                      }}
                       className="group cursor-pointer"
                     >
                       <div className="border-2 border-dashed rounded-lg p-4 transition-all duration-200" style={{ 
@@ -1626,7 +1646,10 @@ export default function Dashboard() {
                     
                     {/* Ghost Add Card */}
                     <div 
-                      onClick={() => setShowCustomSectionForm(true)}
+                      onClick={() => {
+                        setEditingCustomSection(null);
+                        setShowCustomSectionForm(true);
+                      }}
                       className="group cursor-pointer"
                     >
                       <div className="border-2 border-dashed rounded-lg p-4 transition-all duration-200" style={{ 
@@ -1758,6 +1781,7 @@ export default function Dashboard() {
                 endDate: editingExperience.endDate ? editingExperience.endDate.toISOString().split('T')[0] : '',
                 isCurrent: editingExperience.isCurrent,
                 location: editingExperience.location || '',
+                isPublic: editingExperience.isPublic,
               } : undefined}
             />
             </div>

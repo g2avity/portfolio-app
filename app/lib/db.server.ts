@@ -493,6 +493,7 @@ export interface CreateExperienceData {
   endDate?: Date;
   isCurrent: boolean;
   location?: string;
+  isPublic: boolean;
   userId: string;
 }
 
@@ -504,6 +505,7 @@ export interface Experience {
   startDate: Date;
   endDate: Date | null;
   isCurrent: boolean;
+  isPublic: boolean;
   location: string | null;
   userId: string;
   createdAt: Date;
@@ -523,6 +525,7 @@ export async function createExperience(data: CreateExperienceData): Promise<Expe
       endDate: data.isCurrent ? null : data.endDate,
       isCurrent: data.isCurrent,
       location: data.location || null,
+      isPublic: data.isPublic,
       userId: data.userId,
     },
     select: {
@@ -533,6 +536,7 @@ export async function createExperience(data: CreateExperienceData): Promise<Expe
       startDate: true,
       endDate: true,
       isCurrent: true,
+      isPublic: true,
       location: true,
       userId: true,
       createdAt: true,
@@ -562,6 +566,7 @@ export async function getUserExperiences(userId: string): Promise<Experience[]> 
       startDate: true,
       endDate: true,
       isCurrent: true,
+      isPublic: true,
       location: true,
       userId: true,
       createdAt: true,
@@ -597,6 +602,7 @@ export async function updateExperience(data: CreateExperienceData & { id: string
       endDate: data.isCurrent ? null : data.endDate,
       isCurrent: data.isCurrent,
       location: data.location || null,
+      isPublic: data.isPublic,
     },
     select: {
       id: true,
@@ -606,6 +612,7 @@ export async function updateExperience(data: CreateExperienceData & { id: string
       startDate: true,
       endDate: true,
       isCurrent: true,
+      isPublic: true,
       location: true,
       userId: true,
       createdAt: true,
@@ -642,6 +649,7 @@ export interface CreateSkillData {
   category?: string;
   proficiency?: number;
   yearsOfExperience?: number;
+  isPublic: boolean;
   userId: string;
 }
 
@@ -652,6 +660,7 @@ export interface Skill {
   category: string | null;
   proficiency: number | null;
   yearsOfExperience: number | null;
+  isPublic: boolean;
   userId: string;
   createdAt: Date;
   updatedAt: Date;
@@ -668,6 +677,7 @@ export async function createSkill(data: CreateSkillData): Promise<Skill> {
       category: data.category || null,
       proficiency: data.proficiency || null,
       yearsOfExperience: data.yearsOfExperience || null,
+      isPublic: data.isPublic,
       userId: data.userId,
     },
     select: {
@@ -677,6 +687,7 @@ export async function createSkill(data: CreateSkillData): Promise<Skill> {
       category: true,
       proficiency: true,
       yearsOfExperience: true,
+      isPublic: true,
       userId: true,
       createdAt: true,
       updatedAt: true,
@@ -703,6 +714,7 @@ export async function getUserSkills(userId: string): Promise<Skill[]> {
       category: true,
       proficiency: true,
       yearsOfExperience: true,
+      isPublic: true,
       userId: true,
       createdAt: true,
       updatedAt: true,
@@ -735,6 +747,7 @@ export async function updateSkill(data: CreateSkillData & { id: string }): Promi
       category: data.category,
       proficiency: data.proficiency,
       yearsOfExperience: data.yearsOfExperience,
+      isPublic: data.isPublic,
     },
     select: {
       id: true,
@@ -743,6 +756,7 @@ export async function updateSkill(data: CreateSkillData & { id: string }): Promi
       category: true,
       proficiency: true,
       yearsOfExperience: true,
+      isPublic: true,
       userId: true,
       createdAt: true,
       updatedAt: true,
@@ -1211,9 +1225,73 @@ export async function copyTemplateToUserSection(
 }
 
 
+// Get public experiences for a user (for portfolio display)
+export async function getPublicUserExperiences(userId: string): Promise<Experience[]> {
+  const client = await prisma;
+  
+  const experiences = await client.experience.findMany({
+    where: { 
+      userId,
+      isPublic: true 
+    },
+    orderBy: [
+      { isCurrent: 'desc' }, // Current positions first
+      { endDate: 'desc' },   // Then by end date (most recent first)
+      { startDate: 'desc' }  // Finally by start date
+    ],
+    select: {
+      id: true,
+      title: true,
+      companyName: true,
+      description: true,
+      startDate: true,
+      endDate: true,
+      isCurrent: true,
+      isPublic: true,
+      location: true,
+      userId: true,
+      createdAt: true,
+      updatedAt: true,
+    }
+  });
+  
+  return experiences;
+}
+
+// Get public skills for a user (for portfolio display)
+export async function getPublicUserSkills(userId: string): Promise<Skill[]> {
+  const client = await prisma;
+  
+  const skills = await client.skill.findMany({
+    where: { 
+      userId,
+      isPublic: true 
+    },
+    orderBy: [
+      { category: 'asc' },
+      { name: 'asc' }
+    ],
+    select: {
+      id: true,
+      name: true,
+      description: true,
+      category: true,
+      proficiency: true,
+      yearsOfExperience: true,
+      isPublic: true,
+      userId: true,
+      createdAt: true,
+      updatedAt: true,
+    }
+  });
+  
+  return skills;
+}
+
 // Get all users with their portfolio data for public display
 export async function getAllPublicUsers(): Promise<Array<{
   id: string;
+  portfolioSlug: string;
   username: string;
   firstName: string;
   lastName: string;
@@ -1238,10 +1316,14 @@ export async function getAllPublicUsers(): Promise<Array<{
   
   const users = await prisma.user.findMany({
     where: {
-      isPublic: true
+      isPublic: true,
+      portfolioSlug: {
+        not: null
+      }
     },
     select: {
       id: true,
+      portfolioSlug: true,
       username: true,
       firstName: true,
       lastName: true,
@@ -1252,6 +1334,9 @@ export async function getAllPublicUsers(): Promise<Array<{
       country: true,
       bio: true,
       skills: {
+        where: {
+          isPublic: true
+        },
         select: {
           id: true,
           name: true,
@@ -1262,6 +1347,9 @@ export async function getAllPublicUsers(): Promise<Array<{
         }
       },
       experiences: {
+        where: {
+          isPublic: true
+        },
         select: {
           id: true,
           title: true,
@@ -1279,9 +1367,10 @@ export async function getAllPublicUsers(): Promise<Array<{
     }
   });
   
-  // Transform the data to include location
+  // Transform the data to include location and ensure portfolioSlug is non-null
   return users.map(user => ({
     ...user,
+    portfolioSlug: user.portfolioSlug!, // We filtered for non-null above
     location: [user.city, user.state, user.country].filter(Boolean).join(", ") || null
   }));
 }
