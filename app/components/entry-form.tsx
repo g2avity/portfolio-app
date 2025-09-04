@@ -90,14 +90,30 @@ export function EntryForm({
       return;
     }
 
+    // Process form data - convert tags strings to arrays
+    const processedFormData = { ...formData };
+    const template = section.content?.template;
+    
+    if (template) {
+      Object.entries(template).forEach(([fieldName, fieldConfig]: [string, any]) => {
+        if ((fieldConfig.type === 'tags' || fieldConfig.type === 'image-gallery') && typeof processedFormData[fieldName] === 'string') {
+          // Convert comma-separated string to array
+          processedFormData[fieldName] = processedFormData[fieldName]
+            .split(',')
+            .map((item: string) => item.trim())
+            .filter(Boolean);
+        }
+      });
+    }
+
     // Add metadata for new entries
     const entryData = mode === "add" ? {
-      ...formData,
+      ...processedFormData,
       id: crypto.randomUUID(),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     } : {
-      ...formData,
+      ...processedFormData,
       updatedAt: new Date().toISOString(),
     };
 
@@ -105,7 +121,7 @@ export function EntryForm({
   };
 
   const handleInputChange = (field: string, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev: any) => ({ ...prev, [field]: value }));
     // Clear error when user starts typing
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
@@ -142,7 +158,10 @@ export function EntryForm({
             </div>
             
             {isPreviewMode ? (
-              <div className="border rounded-md p-3 bg-gray-50 min-h-[120px]">
+              <div className="border rounded-md p-3 min-h-[120px]" style={{ 
+                borderColor: 'var(--border-color)', 
+                backgroundColor: 'var(--bg-card-content)' 
+              }}>
                 <RichTextDisplay content={value} />
               </div>
             ) : (
@@ -155,7 +174,7 @@ export function EntryForm({
                   className={`min-h-[120px] ${hasError ? 'border-red-500' : ''}`}
                   required={fieldConfig.required}
                 />
-                <div className="text-xs text-gray-500">
+                <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
                   <p>💡 <strong>Markdown Tips:</strong></p>
                   <p>• Use <code>**bold**</code> for emphasis</p>
                   <p>• Use <code>-</code> or <code>•</code> for bullet points</p>
@@ -171,8 +190,8 @@ export function EntryForm({
         return (
           <Input
             id={fieldName}
-            value={Array.isArray(value) ? value.join(', ') : value}
-            onChange={(e) => handleInputChange(fieldName, e.target.value.split(',').map(t => t.trim()).filter(Boolean))}
+            value={Array.isArray(value) ? value.join(', ') : (value || '')}
+            onChange={(e) => handleInputChange(fieldName, e.target.value)}
             placeholder={fieldConfig.placeholder || "Enter tags separated by commas..."}
             className={hasError ? 'border-red-500' : ''}
             required={fieldConfig.required}
@@ -185,13 +204,13 @@ export function EntryForm({
             <Input
               id={fieldName}
               type="url"
-              value={Array.isArray(value) ? value.join(', ') : value}
-              onChange={(e) => handleInputChange(fieldName, e.target.value.split(',').map(t => t.trim()).filter(Boolean))}
+              value={Array.isArray(value) ? value.join(', ') : (value || '')}
+              onChange={(e) => handleInputChange(fieldName, e.target.value)}
               placeholder={fieldConfig.placeholder || "Enter image URLs separated by commas..."}
               className={hasError ? 'border-red-500' : ''}
               required={fieldConfig.required}
             />
-            <p className="text-xs text-gray-500">Enter image URLs separated by commas</p>
+            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Enter image URLs separated by commas</p>
           </div>
         );
 
@@ -256,7 +275,7 @@ export function EntryForm({
     const template = section.content?.template;
     if (!template) {
       return (
-        <div className="text-center py-8 text-gray-500">
+        <div className="text-center py-8" style={{ color: 'var(--text-muted)' }}>
           <p>No template found for this section type.</p>
         </div>
       );
@@ -276,17 +295,17 @@ export function EntryForm({
         <div key={fieldName} className="space-y-2">
           <Label htmlFor={fieldName} className="flex items-center gap-2">
             {fieldConfig.label}
-            {fieldConfig.required && <span className="text-red-500">*</span>}
+            {fieldConfig.required && <span style={{ color: 'var(--error-text)' }}>*</span>}
           </Label>
           
           {renderField(fieldName, fieldConfig)}
           
           {errors[fieldName] && (
-            <p className="text-red-500 text-sm">{errors[fieldName]}</p>
+            <p className="text-sm" style={{ color: 'var(--error-text)' }}>{errors[fieldName]}</p>
           )}
           
           {fieldConfig.placeholder && (
-            <p className="text-xs text-gray-500">{fieldConfig.placeholder}</p>
+            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{fieldConfig.placeholder}</p>
           )}
         </div>
       );
@@ -294,16 +313,16 @@ export function EntryForm({
   };
 
   return (
-    <div className="bg-white rounded-lg p-6 max-w-2xl mx-auto">
+    <div className="rounded-lg p-6 max-w-2xl mx-auto" style={{ backgroundColor: 'var(--bg-card-content)' }}>
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-gray-900">
+        <h2 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>
           {mode === "add" ? "Add Entry" : "Edit Entry"}
         </h2>
-        <p className="text-gray-600 mt-1">
+        <p className="mt-1" style={{ color: 'var(--text-secondary)' }}>
           {section.title} - {section.type}
         </p>
         {section.content?.fields && (
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
             Fields: {section.content.fields.join(', ')}
           </p>
         )}

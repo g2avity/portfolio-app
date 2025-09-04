@@ -260,6 +260,7 @@ body {
   /* Interactive Elements */
   --hover-bg: #f9fafb;           /* Hover background */
   --focus-ring: #3b82f6;         /* Focus ring - blue */
+  --focus-ring-bg: #eff6ff;      /* Focus ring background - light blue */
   --link-hover: #2563eb;         /* Link hover color - darker blue */
   --shimmer-color: rgba(0, 0, 0, 0.15);  /* Shimmer effect - black with low transparency for light mode */
   
@@ -303,6 +304,7 @@ body {
   /* Interactive Elements */
   --hover-bg: #2a2a2a;           /* Hover background - subtle highlight */
   --focus-ring: #3b82f6;         /* Focus ring - bright blue */
+  --focus-ring-bg: #1e3a8a;      /* Focus ring background - dark blue */
   --link-hover: #60a5fa;         /* Link hover color - bright blue */
   --shimmer-color: rgba(0, 0, 0, 0.3);  /* Shimmer effect - black with transparency */
   

@@ -48,6 +48,7 @@ model Experience {
   startDate   DateTime
   endDate     DateTime?
   isCurrent   Boolean   @default(false)
+  isPublic    Boolean   @default(true)
   location    String?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -64,6 +65,7 @@ model Skill {
   category          String?
   proficiency       Int?     @default(1)
   yearsOfExperience Int?
+  isPublic          Boolean  @default(true)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
   userId            String

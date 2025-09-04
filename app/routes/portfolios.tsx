@@ -27,6 +27,7 @@ export default function Portfolios() {
   // Transform users data to match the expected format
   const portfolios = users.map(user => ({
     id: user.id,
+    slug: user.portfolioSlug,
     name: `${user.firstName} ${user.lastName}`,
     title: user.experiences[0]?.title || "Professional",
     bio: user.bio || "No bio available",
@@ -163,7 +164,7 @@ export default function Portfolios() {
 
                   <div className="flex items-center justify-between mt-auto">
                     <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{portfolio.location}</span>
-                    <Link to={`/portfolios/${portfolio.id}`}>
+                    <Link to={`/portfolios/${portfolio.slug}`}>
                       <Button 
                         size="sm" 
                         className="relative overflow-hidden transition-all duration-300 group"
