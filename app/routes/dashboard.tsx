@@ -492,6 +492,7 @@ export async function action({ request }: ActionFunctionArgs) {
     const type = formData.get("type") as string;
     const title = formData.get("title") as string;
     const description = formData.get("description") as string;
+    const isPublic = formData.get("isPublic") === "on";
     
     if (!type || !title) {
       return { 
@@ -506,7 +507,11 @@ export async function action({ request }: ActionFunctionArgs) {
       const { createSectionFromTemplate } = await import("../lib/content-section-models");
       const sectionData = createSectionFromTemplate(type, user.id, title, description);
       
-      const customSection = await createCustomSection(sectionData);
+      // Add isPublic to the section data
+      const customSection = await createCustomSection({
+        ...sectionData,
+        isPublic
+      });
       
       return { 
         success: true, 
