@@ -375,11 +375,19 @@ export default function UserPortfolio() {
                             className="text-xs sm:text-sm"
                             style={{ color: 'var(--text-muted)' }}
                           >
-                            {new Date(experience.startDate).toLocaleDateString()} - {' '}
+                            {new Date(experience.startDate).toLocaleDateString('en-US', { 
+                              year: 'numeric', 
+                              month: 'short', 
+                              day: 'numeric' 
+                            })} - {' '}
                             {experience.isCurrent 
                               ? 'Present' 
                               : experience.endDate 
-                                ? new Date(experience.endDate).toLocaleDateString()
+                                ? new Date(experience.endDate).toLocaleDateString('en-US', { 
+                                    year: 'numeric', 
+                                    month: 'short', 
+                                    day: 'numeric' 
+                                  })
                                 : 'Present'
                             }
                           </p>

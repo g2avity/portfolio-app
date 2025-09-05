@@ -287,7 +287,11 @@ export function CustomSectionDisplay({
               </div>
               {entry.createdAt && (
                 <p className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>
-                  Created: {new Date(entry.createdAt).toLocaleDateString()}
+                  Created: {new Date(entry.createdAt).toLocaleDateString('en-US', { 
+                    year: 'numeric', 
+                    month: 'short', 
+                    day: 'numeric' 
+                  })}
                 </p>
               )}
             </div>
