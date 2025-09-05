@@ -331,7 +331,15 @@ export function generateSlug(title: string): string {
 }
 
 export function generateEntryId(): string {
-  return `entry_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  // Use crypto.randomUUID() if available, otherwise fall back to a simple counter
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return `entry_${crypto.randomUUID()}`;
+  }
+  
+  // Fallback for environments without crypto.randomUUID
+  const timestamp = Date.now();
+  const random = Math.random().toString(36).substr(2, 9);
+  return `entry_${timestamp}_${random}`;
 }
 
 export function validateSectionContent(

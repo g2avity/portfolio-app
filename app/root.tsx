@@ -74,12 +74,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 background-color: ${theme === 'dark' ? '#0a0a0a' : '#f9fafb'} !important;
                 color: ${theme === 'dark' ? '#ffffff' : '#000000'} !important;
               }
-              /* Hide content until CSS variables are loaded */
+              /* Ensure content is visible immediately */
               body > * {
-                opacity: 0;
-                transition: opacity 0.1s ease-in;
-              }
-              body.css-loaded > * {
                 opacity: 1;
               }
             `,
@@ -119,31 +115,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
             }}
           />
         )}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              // Mark CSS as loaded when CSS variables are available
-              (function() {
-                function checkCSSReady() {
-                  var computedStyle = getComputedStyle(document.documentElement);
-                  var bgColor = computedStyle.getPropertyValue('--bg-primary');
-                  
-                  if (bgColor && bgColor.trim() !== '') {
-                    document.body.classList.add('css-loaded');
-                  } else {
-                    setTimeout(checkCSSReady, 10);
-                  }
-                }
-                
-                if (document.readyState === 'loading') {
-                  document.addEventListener('DOMContentLoaded', checkCSSReady);
-                } else {
-                  checkCSSReady();
-                }
-              })();
-            `,
-          }}
-        />
       </head>
       <body>
         {children}
