@@ -1431,8 +1431,16 @@ export default function Dashboard() {
                               <p className="text-sm" style={{ color: 'var(--text-muted)' }}>{experience.location}</p>
                             )}
                             <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-                              {new Date(experience.startDate).toLocaleDateString()} - 
-                              {experience.isCurrent ? 'Present' : experience.endDate ? new Date(experience.endDate).toLocaleDateString() : 'No end date'}
+                              {new Date(experience.startDate).toLocaleDateString('en-US', { 
+                                year: 'numeric', 
+                                month: 'short', 
+                                day: 'numeric' 
+                              })} - 
+                              {experience.isCurrent ? 'Present' : experience.endDate ? new Date(experience.endDate).toLocaleDateString('en-US', { 
+                                year: 'numeric', 
+                                month: 'short', 
+                                day: 'numeric' 
+                              }) : 'No end date'}
                             </p>
                             <div className="mt-2">
                               <RichTextDisplay content={experience.description} className="text-sm" />
